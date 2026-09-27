@@ -2,43 +2,81 @@
 
 import { FormEvent, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { ArrowRight, BriefcaseBusiness, Check, Eye, EyeOff, ShieldCheck, Sparkles, UsersRound } from 'lucide-react'
 import { authClient } from '@/lib/auth-client'
-import { ArrowRight, BriefcaseBusiness, UsersRound } from 'lucide-react'
 
-export function LaunchAuthPanel({ language='English', onPhone: _onPhone, onSuccess, onRole }: { language?: string; onPhone?: () => void; onSuccess?: (name?: string) => void; onRole?: (role: 'labour' | 'hirer') => void }) {
-  const copy = ({'हिंदी':{signIn:'साइन इन',signUp:'साइन अप',email:'ईमेल',password:'पासवर्ड',google:'Google से जारी रखें',phone:'फोन OTP से जारी रखें',submit:'साइन इन',create:'खाता बनाएं',name:'पूरा नाम',agree:'मैं Privacy Policy और Terms of Service से सहमत हूं।',verify:'अपना ईमेल सत्यापित करें',inbox:'हमने आपके ईमेल पर सत्यापन लिंक भेजा है।'},'ਪੰਜਾਬੀ':{signIn:'ਸਾਈਨ ਇਨ',signUp:'ਸਾਈਨ ਅੱਪ',email:'ਈਮੇਲ',password:'ਪਾਸਵਰਡ',google:'Google ਨਾਲ ਜਾਰੀ ਰੱਖੋ',phone:'ਫੋਨ OTP ਨਾਲ ਜਾਰੀ ਰੱਖੋ',submit:'ਸਾਈਨ ਇਨ',create:'ਖਾਤਾ ਬਣਾਓ',name:'ਪੂਰਾ ਨਾਮ',agree:'ਮੈਂ Privacy Policy ਅਤੇ Terms of Service ਨਾਲ ਸਹਿਮਤ ਹਾਂ।',verify:'ਆਪਣੀ ਈਮੇਲ ਦੀ ਪੁਸ਼ਟੀ ਕਰੋ',inbox:'ਅਸੀਂ ਤੁਹਾਡੀ ਈਮੇਲ ਤੇ ਪੁਸ਼ਟੀ ਲਿੰਕ ਭੇਜਿਆ ਹੈ।'},'اردو':{signIn:'سائن اِن',signUp:'سائن اَپ',email:'ای میل',password:'پاس ورڈ',google:'Google کے ساتھ جاری رکھیں',phone:'فون OTP کے ساتھ جاری رکھیں',submit:'سائن اِن',create:'اکاؤنٹ بنائیں',name:'پورا نام',agree:'میں Privacy Policy اور Terms of Service سے متفق ہوں۔',verify:'اپنی ای میل کی تصدیق کریں',inbox:'ہم نے آپ کے ای میل پر تصدیقی لنک بھیجا ہے۔'},'বাংলা':{signIn:'সাইন ইন',signUp:'সাইন আপ',email:'ইমেল',password:'পাসওয়ার্ড',google:'Google দিয়ে চালিয়ে যান',phone:'ফোন OTP দিয়ে চালিয়ে যান',submit:'সাইন ইন',create:'অ্যাকাউন্ট তৈরি করুন',name:'পুরো নাম',agree:'আমি Privacy Policy এবং Terms of Service-এ সম্মত।',verify:'আপনার ইমেল যাচাই করুন',inbox:'আমরা আপনার ইমেলে যাচাই লিঙ্ক পাঠিয়েছি।'},'मराठी':{signIn:'साइन इन',signUp:'साइन अप',email:'ईमेल',password:'पासवर्ड',google:'Google सह सुरू ठेवा',phone:'फोन OTP सह सुरू ठेवा',submit:'साइन इन',create:'खाते तयार करा',name:'पूर्ण नाव',agree:'मी Privacy Policy आणि Terms of Service शी सहमत आहे.',verify:'तुमचा ईमेल सत्यापित करा',inbox:'आम्ही तुमच्या ईमेलवर सत्यापन लिंक पाठवली आहे.'},'ગુજરાતી':{signIn:'સાઇન ઇન',signUp:'સાઇન અપ',email:'ઇમેલ',password:'પાસવર્ડ',google:'Google સાથે ચાલુ રાખો',phone:'ફોન OTP સાથે ચાલુ રાખો',submit:'સાઇન ઇન',create:'ખાતું બનાવો',name:'પૂરું નામ',agree:'હું Privacy Policy અને Terms of Service સાથે સંમત છું.',verify:'તમારું ઇમેલ ચકાસો',inbox:'અમે તમારા ઇમેલ પર ચકાસણી લિંક મોકલી છે.'},'தமிழ்':{signIn:'உள்நுழைக',signUp:'பதிவு செய்க',email:'மின்னஞ்சல்',password:'கடவுச்சொல்',google:'Google மூலம் தொடரவும்',phone:'தொலைபேசி OTP மூலம் தொடரவும்',submit:'உள்நுழைக',create:'கணக்கை உருவாக்கு',name:'முழுப் பெயர்',agree:'Privacy Policy மற்றும் Terms of Service-ஐ ஏற்கிறேன்.',verify:'உங்கள் மின்னஞ்சலைச் சரிபார்க்கவும்',inbox:'உங்கள் மின்னஞ்சலுக்கு சரிபார்ப்பு இணைப்பை அனுப்பியுள்ளோம்.'},'తెలుగు':{signIn:'సైన్ ఇన్',signUp:'సైన్ అప్',email:'ఇమెయిల్',password:'పాస్‌వర్డ్',google:'Googleతో కొనసాగండి',phone:'ఫోన్ OTPతో కొనసాగండి',submit:'సైన్ ఇన్',create:'ఖాతా సృష్టించండి',name:'పూర్తి పేరు',agree:'Privacy Policy మరియు Terms of Service కు అంగీకరిస్తున్నాను.',verify:'మీ ఇమెయిల్‌ను ధృవీకరించండి',inbox:'మీ ఇమెయిల్‌కు ధృవీకరణ లింక్ పంపాము.'},'ಕನ್ನಡ':{signIn:'ಸೈನ್ ಇನ್',signUp:'ಸೈನ್ ಅಪ್',email:'ಇಮೇಲ್',password:'ಪಾಸ್‌ವರ್ಡ್',google:'Google ಮೂಲಕ ಮುಂದುವರಿಸಿ',phone:'ಫೋನ್ OTP ಮೂಲಕ ಮುಂದುವರಿಸಿ',submit:'ಸೈನ್ ಇನ್',create:'ಖಾತೆ ರಚಿಸಿ',name:'ಪೂರ್ಣ ಹೆಸರು',agree:'Privacy Policy ಮತ್ತು Terms of Service ಅನ್ನು ಒಪ್ಪುತ್ತೇನೆ.',verify:'ನಿಮ್ಮ ಇಮೇಲ್ ಪರಿಶೀಲಿಸಿ',inbox:'ನಿಮ್ಮ ಇಮೇಲ್‌ಗೆ ಪರಿಶೀಲನಾ ಲಿಂಕ್ ಕಳುಹಿಸಿದ್ದೇವೆ.'},'മലയാളം':{signIn:'സൈൻ ഇൻ',signUp:'സൈൻ അപ്പ്',email:'ഇമെയിൽ',password:'പാസ്‌വേഡ്',google:'Google ഉപയോഗിച്ച് തുടരുക',phone:'ഫോൺ OTP ഉപയോഗിച്ച് തുടരുക',submit:'സൈൻ ഇൻ',create:'അക്കൗണ്ട് സൃഷ്ടിക്കുക',name:'പൂർണ്ണ പേര്',agree:'Privacy Policyയും Terms of Serviceയും ഞാൻ അംഗീകരിക്കുന്നു.',verify:'നിങ്ങളുടെ ഇമെയിൽ സ്ഥിരീകരിക്കുക',inbox:'നിങ്ങളുടെ ഇമെയിലിലേക്ക് സ്ഥിരീകരണ ലിങ്ക് അയച്ചു.'}} as Record<string,Record<string,string>>)[language] || {signIn:`${language} · Sign in`,signUp:`${language} · Sign up`,email:`${language} · Email`,password:`${language} · Password`,google:`${language} · Continue with Google`,phone:`${language} · Continue with phone OTP`,submit:`${language} · Sign in`,create:`${language} · Create account`,name:`${language} · Full name`,agree:`${language}: I agree to the Privacy Policy and Terms of Service.`,verify:`${language} · Verify your email`,inbox:`${language}: We sent a verification link to your email.`};
+type Role = 'labour' | 'hirer'
+
+export function LaunchAuthPanel({ onSuccess, onRole }: { language?: string; onSuccess?: (name?: string) => void; onRole?: (role: Role) => void }) {
   const router = useRouter()
   const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-in')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [terms, setTerms] = useState(false)
-  const [role, setRole] = useState<'labour' | 'hirer' | ''>('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const [profile, setProfile] = useState(false)
+  const [role, setRole] = useState<Role | ''>('')
   const [occupation, setOccupation] = useState('')
   const [experience, setExperience] = useState('')
-  const [education, setEducation] = useState('')
-  const [verification, setVerification] = useState(false)
+
+  function changeMode(next: 'sign-in' | 'sign-up') {
+    setMode(next); setError(''); setPassword('')
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setError(''); setLoading(true)
+    event.preventDefault()
+    setError(''); setLoading(true)
     try {
       const result = mode === 'sign-in'
-        ? await authClient.signIn.email({ email, password })
-        : await authClient.signUp.email({ email, password, name: name || 'Labzeck member' })
-      if (result.error) { setError('We could not complete that request. Check your details and try again.'); return }
-      setName((mode === 'sign-up' ? name : result.data?.user?.name) || name || 'Labzeck member'); setProfile(true)
-    } catch { setError('Connection problem. Please try again.') } finally { setLoading(false) }
+        ? await authClient.signIn.email({ email: email.trim().toLowerCase(), password })
+        : await authClient.signUp.email({ email: email.trim().toLowerCase(), password, name: name.trim() })
+      if (result.error) {
+        setError(mode === 'sign-in' ? 'Email or password is incorrect.' : 'This email may already be registered, or the details are invalid.')
+        return
+      }
+      setName((mode === 'sign-in' ? result.data?.user?.name : name) || 'Labzeck member')
+      setProfile(true)
+    } catch {
+      setError('Unable to connect. Please check your internet and try again.')
+    } finally { setLoading(false) }
   }
-  if (verification) return <div className="auth-panel verification-panel"><div className="verification-icon">✓</div><p className="eyebrow">CHECK YOUR INBOX</p><h2>{copy.verify}</h2><p className="intro">{copy.inbox} <strong>{email}</strong>.</p><button className="secondary wide" onClick={()=>setVerification(false)}>Back to sign in</button></div>
-  function finishProfile(event: FormEvent<HTMLFormElement>) { event.preventDefault(); if (!role) { setError('Choose Labour or Hirer to continue.'); return } onRole?.('labour'); document.cookie='labzeck_role=labour; path=/; max-age=31536000'; onSuccess?.(name); router.refresh(); router.push('/') }
-  if (profile) return <div className="auth-panel profile-onboarding"><div className="role-welcome"><span className="step-chip">STEP 1 OF 1</span><h2>How will you use <em>Labzeck</em>?</h2><p>Choose the option that fits you best.</p></div><div className="role-choice"><button type="button" className={`role-card ${role==='labour'?'selected':''}`} onClick={()=>setRole('labour')}><span className="role-icon" aria-hidden="true"><BriefcaseBusiness size={21}/></span><span><strong>I&apos;m a Labour</strong><small>Find jobs, showcase your skills and grow</small></span><ArrowRight size={18}/></button><button type="button" className={`role-card ${role==='hirer'?'selected':''}`} onClick={()=>{onRole?.('hirer'); document.cookie='labzeck_role=hirer; path=/; max-age=31536000'; onSuccess?.(name); router.refresh(); router.push('/')}}><span className="role-icon" aria-hidden="true"><UsersRound size={21}/></span><span><strong>I want to Hire</strong><small>Find trusted help for your next job</small></span><ArrowRight size={18}/></button></div>{role==='labour' && <form onSubmit={finishProfile} className="form-stack"><label>Full name<input value={name} onChange={e=>setName(e.target.value)} placeholder="Your name" required /></label><label>Phone number<input type="tel" placeholder="+91 98765 43210" required /></label><label>Occupation<select value={occupation} onChange={e=>setOccupation(e.target.value)} required><option value="">Select occupation</option><option>Electrician</option><option>Plumber</option><option>Mason</option><option>Chef</option><option>Other</option></select></label><label>Experience<select value={experience} onChange={e=>setExperience(e.target.value)} required><option value="">Select experience</option><option>Less than 1 month</option><option>1–5 months</option><option>5–10 months</option><option>10+ months</option></select></label><label>Education<select value={education} onChange={e=>setEducation(e.target.value)} required><option value="">Select education</option><option>10 pass (Matric)</option><option>12 pass (Inter)</option><option>B.A. pass</option></select></label><button className="primary wide">Finish profile <ArrowRight size={16}/></button></form>}</div>;
-  async function google() { setError(''); const result = await authClient.signIn.social({ provider: 'google', callbackURL: '/' }); if (result.error) setError('Google sign in is unavailable right now. Try email instead.') }
-  return <div className="auth-panel">
-    <div className="auth-tabs"><button type="button" className={mode === 'sign-in' ? 'active' : ''} onClick={() => { setError(''); setMode('sign-in') }}>{language === 'English' ? 'Sign in' : copy.signIn}</button><button type="button" className={mode === 'sign-up' ? 'active' : ''} onClick={() => { setError(''); setMode('sign-up') }}>{language === 'English' ? 'Sign up' : copy.signUp}</button></div>
-    <form onSubmit={submit} className="form-stack">{mode === 'sign-up' && <label>{language === 'English' ? 'Full name' : copy.name}<input value={name} onChange={e => setName(e.target.value)} placeholder="Your name" required /></label>}<label>{language === 'English' ? 'Email' : copy.email}<input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required /></label><label>{language === 'English' ? 'Password' : copy.password}<input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 8 characters" minLength={8} required autoComplete={mode === 'sign-in' ? 'current-password' : 'new-password'} /></label>{mode === 'sign-up' && <label className="consent-row"><input type="checkbox" checked={terms} onChange={e=>setTerms(e.target.checked)} required/><span>{copy.agree}</span></label>}{error && <p className="form-error" role="alert">{error}</p>}<button type="submit" className="primary wide" disabled={loading}>{loading ? 'Please wait…' : mode === 'sign-in' ? (language === 'English' ? 'Sign in' : copy.submit) : (language === 'English' ? 'Create account' : copy.create)}</button></form>
+
+  function chooseRole(nextRole: Role) {
+    setRole(nextRole)
+    if (nextRole === 'hirer') finish(nextRole)
+  }
+
+  function finish(nextRole: Role = role as Role) {
+    onRole?.(nextRole)
+    document.cookie = `labzeck_role=${nextRole}; path=/; max-age=31536000; samesite=lax`
+    onSuccess?.(name)
+    router.push('/')
+    router.refresh()
+  }
+
+  if (profile) return <div className="auth-panel profile-onboarding auth-motion">
+    <div className="role-welcome"><span className="step-chip"><Sparkles size={12} /> PERSONALIZE YOUR START</span><h2>How will you use <em>Labzeck</em>?</h2><p>Pick your path and we&apos;ll tailor your experience.</p></div>
+    <div className="role-choice">
+      <button type="button" className={`role-card ${role === 'labour' ? 'selected' : ''}`} onClick={() => chooseRole('labour')}><span className="role-icon"><BriefcaseBusiness size={21} /></span><span><strong>I&apos;m a Labour</strong><small>Find work, show your skills, earn more</small></span><ArrowRight size={18} /></button>
+      <button type="button" className="role-card" onClick={() => chooseRole('hirer')}><span className="role-icon"><UsersRound size={21} /></span><span><strong>I want to Hire</strong><small>Find trusted help for your next job</small></span><ArrowRight size={18} /></button>
+    </div>
+    {role === 'labour' && <form className="form-stack auth-detail-form" onSubmit={(event) => { event.preventDefault(); if (!occupation || !experience) return setError('Please complete your work details.'); finish('labour') }}><label>Occupation<select value={occupation} onChange={event => setOccupation(event.target.value)} required><option value="">Select occupation</option><option>Electrician</option><option>Plumber</option><option>Mason</option><option>Chef</option><option>Other</option></select></label><label>Experience<select value={experience} onChange={event => setExperience(event.target.value)} required><option value="">Select experience</option><option>Less than 1 year</option><option>1–5 years</option><option>5–10 years</option><option>10+ years</option></select></label>{error && <p className="form-error" role="alert">{error}</p>}<button className="primary wide" type="submit">Continue to Labzeck <ArrowRight size={17} /></button></form>}
+  </div>
+
+  return <div className="auth-panel auth-motion">
+    <div className="auth-hero"><span className="auth-orb"><ShieldCheck size={23} /></span><div><p className="eyebrow">WELCOME TO LABZECK</p><h2>{mode === 'sign-in' ? 'Good to see you.' : 'Build your next step.'}</h2></div></div>
+    <div className="auth-tabs" role="tablist"><button type="button" role="tab" aria-selected={mode === 'sign-in'} className={mode === 'sign-in' ? 'active' : ''} onClick={() => changeMode('sign-in')}>Sign in</button><button type="button" role="tab" aria-selected={mode === 'sign-up'} className={mode === 'sign-up' ? 'active' : ''} onClick={() => changeMode('sign-up')}>Sign up</button></div>
+    <form onSubmit={submit} className="form-stack auth-form">
+      {mode === 'sign-up' && <label>Full name<input value={name} onChange={event => setName(event.target.value)} placeholder="e.g. Riya Sharma" autoComplete="name" required /></label>}
+      <label>Email address<input type="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="you@example.com" autoComplete="email" required /></label>
+      <label>Password<div className="password-field"><input type={showPassword ? 'text' : 'password'} value={password} onChange={event => setPassword(event.target.value)} placeholder="At least 8 characters" minLength={8} autoComplete={mode === 'sign-in' ? 'current-password' : 'new-password'} required /><button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword(value => !value)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></label>
+      {mode === 'sign-up' && <label className="consent-row"><input type="checkbox" checked={terms} onChange={event => setTerms(event.target.checked)} required /><span>I agree to the Privacy Policy and Terms of Service.</span></label>}
+      {error && <p className="form-error" role="alert">{error}</p>}
+      <button type="submit" className="primary wide auth-submit" disabled={loading}>{loading ? <><span className="button-spinner" /> Signing you in…</> : mode === 'sign-in' ? 'Sign in securely' : 'Create my account'} {!loading && <ArrowRight size={17} />}</button>
+    </form>
+    <div className="auth-trust"><Check size={15} /> Secure email login <span /> <ShieldCheck size={15} /> Your data stays private</div>
   </div>
 }
-

@@ -70,5 +70,25 @@ img, svg { max-width:100%; }
 .greeting h2, .section-heading h3, .job-card strong, .job-card p, .subscription-banner strong, .subscription-banner span, .role-card strong, .role-card small { overflow-wrap:anywhere; }
 .search-panel input { min-width:0; width:100%; }
 .job-card, .subscription-banner, .role-card, .worker-profile, .refer-card, .ai-intro, .subscription-copy { overflow:hidden; }
+.auth-motion { animation: auth-rise .42s cubic-bezier(.2,.8,.2,1); }
+.auth-hero { display:flex; align-items:center; gap:12px; margin:0 0 20px; }
+.auth-hero h2 { margin-top:2px; color:#132344; font-size:27px; line-height:1.05; letter-spacing:-.06em; }
+.auth-orb { display:grid; place-items:center; width:46px; height:46px; flex:none; border-radius:15px; color:#fff; background:linear-gradient(145deg,#1761e8,#4b8cff); box-shadow:0 9px 20px #1761e83b; }
+.auth-panel .eyebrow { margin:0; color:#1761e8; font-size:9px; font-weight:900; letter-spacing:.14em; }
+.auth-panel .auth-tabs { margin-bottom:18px; }
+.auth-form { margin-top:0; }
+.password-field { position:relative; display:flex; align-items:center; }
+.password-field input { padding-right:44px !important; }
+.password-field button { position:absolute; right:6px; display:grid; place-items:center; width:34px; height:34px; border:0; border-radius:9px; background:transparent; color:#8190a5; }
+.password-field button:hover { background:#edf4ff; color:#1761e8; }
+.auth-submit { display:flex; align-items:center; justify-content:center; gap:8px; }
+.button-spinner { width:15px; height:15px; border:2px solid #ffffff66; border-top-color:#fff; border-radius:50%; animation:auth-spin .7s linear infinite; }
+.auth-trust { display:flex; align-items:center; justify-content:center; gap:5px; margin-top:17px; color:#8190a5; font-size:9px; font-weight:700; }
+.auth-trust svg { color:#2d9a59; }
+.auth-trust span { width:3px; height:3px; margin:0 3px; border-radius:50%; background:#c7d2df; }
+.form-error { margin:2px 0 0; padding:10px 12px; border:1px solid #ffd7d7; border-radius:11px; color:#b33939; background:#fff4f4; font-size:11px; line-height:1.4; }
+.auth-detail-form { margin-top:16px; }
+@keyframes auth-rise { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+@keyframes auth-spin { to { transform:rotate(360deg); } }
 @media (max-width:340px) { .content { padding-left:16px; padding-right:16px; } .topbar { padding-left:16px; padding-right:16px; } .role-choice { gap:8px; } .role-card { padding:11px 7px; border-radius:15px; } .role-card strong { font-size:12px; } .role-card small { font-size:10px; } .service-grid { gap:5px; } .service-grid button { font-size:8px; } .bottom-nav button { min-width:48px; } }
 
