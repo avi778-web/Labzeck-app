@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, BriefcaseBusiness, Check, Eye, EyeOff, ShieldCheck, Sparkles, UsersRound } from 'lucide-react'
+import { ArrowRight, BriefcaseBusiness, Eye, EyeOff, Sparkles, UsersRound } from 'lucide-react'
 import { authClient } from '@/lib/auth-client'
 
 type Role = 'labour' | 'hirer'
@@ -67,7 +67,6 @@ export function LaunchAuthPanel({ onSuccess, onRole }: { language?: string; onSu
   </div>
 
   return <div className="auth-panel auth-motion">
-    <div className="auth-hero"><span className="auth-orb"><ShieldCheck size={23} /></span><div><p className="eyebrow">WELCOME TO LABZECK</p><h2>{mode === 'sign-in' ? 'Good to see you.' : 'Build your next step.'}</h2></div></div>
     <div className="auth-tabs" role="tablist"><button type="button" role="tab" aria-selected={mode === 'sign-in'} className={mode === 'sign-in' ? 'active' : ''} onClick={() => changeMode('sign-in')}>Sign in</button><button type="button" role="tab" aria-selected={mode === 'sign-up'} className={mode === 'sign-up' ? 'active' : ''} onClick={() => changeMode('sign-up')}>Sign up</button></div>
     <form onSubmit={submit} className="form-stack auth-form">
       {mode === 'sign-up' && <label>Full name<input value={name} onChange={event => setName(event.target.value)} placeholder="e.g. Riya Sharma" autoComplete="name" required /></label>}
@@ -77,6 +76,5 @@ export function LaunchAuthPanel({ onSuccess, onRole }: { language?: string; onSu
       {error && <p className="form-error" role="alert">{error}</p>}
       <button type="submit" className="primary wide auth-submit" disabled={loading}>{loading ? <><span className="button-spinner" /> Signing you in…</> : mode === 'sign-in' ? 'Sign in securely' : 'Create my account'} {!loading && <ArrowRight size={17} />}</button>
     </form>
-    <div className="auth-trust"><Check size={15} /> Secure email login <span /> <ShieldCheck size={15} /> Your data stays private</div>
   </div>
 }
