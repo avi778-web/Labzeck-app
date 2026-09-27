@@ -3,8 +3,8 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'LabZeck | Work made simple',
-  description: 'Find reliable work or trusted help in your neighbourhood with LabZeck.',
+  title: 'Labzeck — Work made simple',
+  description: 'Find reliable work or trusted help in your neighbourhood with Labzeck.',
   generator: 'v0.app',
   icons: {
     icon: [
