@@ -1,0 +1,13 @@
+{
+  "appId": "com.example.app",
+  "appName": "Example App",
+  "webDir": "www"
+}
+
+
+{
+  "appId": "com.labzeck.app",
+  "appName": "Labzeck",
+  "webDir": "out",
+  "bundledWebRuntime": false
+}
