@@ -35,6 +35,53 @@ button, a, input, select, textarea { transition: transform .18s ease, box-shadow
 @media (max-width:340px) { .start-top { gap:6px; } .start-top img { width:30px; height:30px; } .start-top b { font-size:18px; } .start-top span { flex-basis:76px; max-width:76px; font-size:8px; } .onboard-brand { gap:6px; font-size:17px; } .onboard-brand img { width:28px; height:28px; } .onboard-brand::after { font-size:8px; line-height:1.25; } .welcome-start .welcome-copy h1 { font-size:clamp(27px, 9vw, 34px); } h1 { font-size:clamp(24px,8vw,34px) !important; } h2 { font-size:clamp(21px,7vw,27px); } h3 { font-size:16px; } .content { padding-left:15px; padding-right:15px; } .topbar { padding-left:15px; padding-right:15px; } .subscription-banner { grid-template-columns:32px minmax(0,1fr); } .subscription-banner button { grid-column:2; justify-self:start; } .section-heading { align-items:center; } .job-card { gap:9px; padding:11px; } .job-info h4 { font-size:13px; } .job-bottom { flex-wrap:wrap; gap:5px; } .bottom-nav { padding-left:4px; padding-right:4px; } .bottom-nav button { min-width:0; flex:1; } }
 @media (min-width:700px) { .app-shell { box-shadow:0 0 45px #18355c10; min-height:100vh; } .modal-backdrop { place-items:center; padding:20px; } .qr-modal { border-radius:26px; max-width:430px; } }
 
+/* Preserve the original Labzeck direction while making every mobile surface fit cleanly. */
+html, body { width:100%; min-width:0; overflow-x:hidden; }
+.app-shell { width:100%; min-width:0; overflow-x:hidden; }
+.onboarding, .onboard-inner, .content, .home-content, .labour-content { min-width:0; max-width:100%; }
+.onboard-inner { width:min(calc(100% - 30px),390px); }
+.onboard-brand, .screen-brand, .brand { min-width:0; }
+.onboard-brand b, .screen-brand strong, .brand strong { white-space:nowrap !important; overflow:visible; word-break:normal !important; overflow-wrap:normal !important; }
+.onboarding h1, .onboarding .intro { max-width:100%; overflow-wrap:break-word; word-break:normal; }
+.welcome-art { flex:none; }
+.form-stack, .form-stack label, .profile-head, .message-card, .job-card, .subscription-banner, .section-heading, .greeting { min-width:0; max-width:100%; }
+.job-info, .message-card > div, .profile-head > div, .subscription-banner > * { min-width:0; }
+.job-info h4, .job-info p, .message-card p, .profile-head h3, .profile-head p, .subscription-banner strong, .subscription-banner span { overflow-wrap:break-word; word-break:normal; white-space:normal; }
+.bottom-nav { left:50%; transform:translateX(-50%); width:min(100%,470px); }
+.bottom-nav button { min-width:0; flex:1 1 0; }
+.two-fields { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+@media (max-width:470px) {
+  .topbar { padding:18px 15px 14px; }
+  .content, .home-content, .labour-content { padding-left:15px; padding-right:15px; }
+  .onboarding h1 { font-size:clamp(28px,9vw,38px); line-height:1.08; }
+  .onboarding .intro { font-size:14px; line-height:1.45; }
+  .welcome-art { margin-bottom:24px; }
+  .greeting { margin-bottom:16px; }
+  .greeting h2 { font-size:clamp(22px,7vw,27px); }
+  .hero-card img { height:170px; }
+  .service-grid { gap:7px; }
+  .service-grid button { min-width:0; padding-inline:5px; font-size:10px; }
+  .job-card { gap:9px; padding:12px; }
+  .job-avatar { width:42px; height:42px; }
+  .job-info h4 { font-size:14px; line-height:1.25; }
+  .screen-header { padding-inline:15px; }
+  .screen-header > h2 { max-width:45%; font-size:16px; }
+  .profile-head { gap:10px; padding:14px; }
+  .profile-head h3 { font-size:16px; }
+  .action-row > * { flex:1 1 110px; }
+}
+@media (max-width:340px) {
+  .brand strong { font-size:17px; }
+  .brand small { font-size:9px; }
+  .onboard-brand { margin-bottom:30px; }
+  .onboard-brand b { font-size:17px; }
+  .hero-card img { height:145px; }
+  .service-grid { grid-template-columns:repeat(4,minmax(0,1fr)); }
+  .service-grid button { font-size:9px; }
+  .bottom-nav { padding-left:4px; padding-right:4px; }
+  .bottom-nav button { font-size:9px; }
+}
+
 /* Final no-overlap system: preserve every word and brand name at narrow widths. */
 html, body { width:100%; min-width:0; overflow-x:hidden; }
 .app-shell { width:100%; min-width:0; overflow-x:hidden; }
