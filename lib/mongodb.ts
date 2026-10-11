@@ -1,24 +1,19 @@
 import { MongoClient } from 'mongodb'
 
-const globalForMongo = globalThis as typeof globalThis & { mongoClient?: MongoClient }
+const globalForMongo = globalThis as typeof globalThis & { labzeckMongo?: MongoClient }
 
-function getMongoClient() {
+export async function getMongo() {
   const uri = process.env.MONGODB_CONNECTION_STRING || process.env.MONGODB_URI
-  if (!uri) throw new Error('MongoDB connection string is not configured')
-  const client = globalForMongo.mongoClient ?? new MongoClient(uri)
-  if (process.env.NODE_ENV !== 'production') globalForMongo.mongoClient = client
-  return client
-}
-
-export async function ensureMongoConnection() {
-  const client = getMongoClient()
+  if (!uri) throw new Error('MongoDB is not configured')
+  const client = globalForMongo.labzeckMongo ?? new MongoClient(uri)
+  if (process.env.NODE_ENV !== 'production') globalForMongo.labzeckMongo = client
   await client.connect()
   const db = client.db(process.env.MONGODB_DATABASE || 'labzeck')
   return {
     db,
     users: db.collection('users'),
-    aiUsage: db.collection('ai_usage'),
-    feedback: db.collection('feedback'),
-    payments: db.collection('payments'),
+    hirers: db.collection('hirers'),
+    labourers: db.collection('labourers'),
+    locations: db.collection('user_locations'),
   }
 }
