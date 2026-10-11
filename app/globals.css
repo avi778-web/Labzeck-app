@@ -36,6 +36,17 @@ button, a, input, select, textarea { transition: transform .18s ease, box-shadow
 
 @media (min-width:700px) { .app-shell { box-shadow:0 0 45px #18355c10; min-height:100vh; } .modal-backdrop { place-items:center; padding:20px; } .qr-modal { border-radius:26px; max-width:430px; } }
 
+/* Keep the original welcome artwork, while giving the location step a clear app anchor. */
+.onboarding:has(.location-art) .onboard-inner { align-items:stretch; }
+.onboarding:has(.location-art) .onboard-brand { align-self:flex-start; align-items:flex-start; text-align:left; margin-bottom:42px; }
+.onboarding:has(.location-art) .welcome-art, .onboarding:has(.location-art) h1, .onboarding:has(.location-art) .intro, .onboarding:has(.location-art) .wide, .onboarding:has(.location-art) small { align-self:center; }
+.screen-header { min-width:0; gap:10px; }
+.screen-header > h2 { min-width:0; flex:1; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.screen-brand { flex:none; display:flex; align-items:center; gap:7px; min-width:0; }
+.screen-brand strong { font-size:17px; letter-spacing:-.04em; }
+.screen-brand img { width:27px; height:27px; object-fit:contain; border-radius:7px; }
+@media (max-width:340px) { .screen-header { padding-left:13px; padding-right:13px; gap:7px; } .screen-brand strong { font-size:16px; } .screen-header > h2 { font-size:15px; } }
+
 /* Preserve the original Labzeck direction while making every mobile surface fit cleanly. */
 html, body { width:100%; min-width:0; overflow-x:hidden; }
 .app-shell { width:100%; min-width:0; overflow-x:hidden; }
