@@ -1,11 +1,9 @@
-import Link from 'next/link'
-import { ArrowLeft, ShieldCheck } from 'lucide-react'
+import { ShieldCheck } from 'lucide-react'
 
 export default function PrivacyPolicyPage() {
   return (
     <main className="policy-page">
       <div className="policy-inner">
-        <Link href="/" className="back"><ArrowLeft size={17}/> Back to Labzeck</Link>
         <div className="policy-icon"><ShieldCheck size={25}/></div>
         <p className="eyebrow">LABZECK TRUST CENTRE</p>
         <h1>Privacy Policy</h1>
