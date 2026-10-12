@@ -15,5 +15,6 @@ export async function getMongo() {
     hirers: db.collection('hirers'),
     labourers: db.collection('labourers'),
     locations: db.collection('user_locations'),
+    payoutMethods: db.collection('payout_methods'),
   }
 }
