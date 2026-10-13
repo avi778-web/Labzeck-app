@@ -13,8 +13,11 @@ export async function POST(request: Request) {
     if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded') {
       const checkout = event.data.object as Stripe.Checkout.Session
       if (checkout.payment_status === 'paid' || event.type === 'checkout.session.async_payment_succeeded') {
-        const { subscriptions } = await getMongo()
-        await subscriptions.updateOne({ stripeSessionId: checkout.id }, { $set: { status: 'paid', paymentStatus: checkout.payment_status, paidAt: new Date(), providerPaymentId: checkout.payment_intent } })
+        const { subscriptions, users, labourers } = await getMongo()
+        await subscriptions.findOneAndUpdate({ stripeSessionId: checkout.id }, { $set: { status: 'paid', paymentStatus: checkout.payment_status, payment_status: 'success', paidAt: new Date(), providerPaymentId: checkout.payment_intent, valid_until: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) } }, { returnDocument: 'after' })
+        const userId = checkout.metadata?.userId
+        const tier = checkout.metadata?.subscription_tier
+        if (userId) { const benefits = { subscription_tier: tier, hasBlueTick: true, isAdFree: true, unlimitedAi: true, rank_tier: tier === '699' ? 'vip-gold' : 'verified' }; await users.updateOne({ _id: userId }, { $set: benefits }); await labourers.updateOne({ userId }, { $set: benefits }) }
       }
     }
     return NextResponse.json({ received: true })

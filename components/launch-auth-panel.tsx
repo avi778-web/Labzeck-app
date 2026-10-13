@@ -9,7 +9,7 @@ type Role = 'labour' | 'hirer'
 
 export function LaunchAuthPanel({ onSuccess, onRole }: { language?: string; onSuccess?: (name?: string) => void; onRole?: (role: Role) => void }) {
   const router = useRouter()
-  const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-in')
+  const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-up')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

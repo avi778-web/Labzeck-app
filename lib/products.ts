@@ -1,4 +1,4 @@
-export const SUBSCRIPTION_PLANS = { basic: { id: 'labzeck-basic', name: 'Labzeck Basic', description: 'Verified profile and personal AI access', amountInr: 399, priceInCents: 39900 }, pro: { id: 'labzeck-pro', name: 'Labzeck Pro', description: 'Priority discovery, verified profile and personal AI access', amountInr: 699, priceInCents: 69900 } } as const
+export const SUBSCRIPTION_PLANS = { basic: { id: 'labzeck-basic', name: 'Labzeck Verified', description: 'Blue tick, top search rank, ad-free experience and unlimited AI assistant', amountInr: 399, priceInCents: 39900, hasBlueTick: true, adFree: true, unlimitedAi: true }, pro: { id: 'labzeck-pro', name: 'Labzeck VIP Gold', description: 'Everything in Verified plus profile views, gold frame and direct CEO & CTO access', amountInr: 699, priceInCents: 69900, hasBlueTick: true, adFree: true, unlimitedAi: true, goldFrame: true, profileViews: true, ceoCtoAccess: true } } as const
 
 export type SubscriptionPlan = keyof typeof SUBSCRIPTION_PLANS
 
