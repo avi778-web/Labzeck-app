@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, BriefcaseBusiness, Eye, EyeOff, Sparkles, UsersRound } from 'lucide-react'
+import { ArrowRight, BriefcaseBusiness, Eye, EyeOff, Mail, Phone, Sparkles, UsersRound } from 'lucide-react'
 import { authClient } from '@/lib/auth-client'
 
 type Role = 'labour' | 'hirer'
@@ -67,6 +67,9 @@ export function LaunchAuthPanel({ onSuccess, onRole }: { language?: string; onSu
   </div>
 
   return <div className={`auth-panel auth-motion auth-${mode}`}>
+    <div className="auth-provider-heading"><h2>Welcome to <em>Labzeck</em></h2><p>Get started by signing in to your account</p></div>
+    <div className="auth-providers"><button type="button" className="provider-button" onClick={() => setError('Google sign-in will be available after OAuth is connected.')}><span className="google-mark">G</span> Continue with Google</button><button type="button" className="provider-button" onClick={() => setError('Use email to create your secure Labzeck account.')}><Mail size={17}/> Continue with Email</button><button type="button" className="provider-button provider-disabled" disabled><Phone size={17}/> Phone number <small>Coming soon</small></button></div>
+    <div className="auth-divider"><span>or use email</span></div>
     <div className="auth-tabs" role="tablist" aria-label="Account access"><button type="button" role="tab" aria-selected={mode === 'sign-in'} className={mode === 'sign-in' ? 'active' : ''} onClick={() => changeMode('sign-in')}>Sign in</button><button type="button" role="tab" aria-selected={mode === 'sign-up'} className={mode === 'sign-up' ? 'active' : ''} onClick={() => changeMode('sign-up')}>Sign up</button></div>
     <div className="auth-heading"><span className="auth-status-dot" /> <span>{mode === 'sign-in' ? 'Access your account' : 'Create your account'}</span></div>
     <form onSubmit={submit} className="form-stack auth-form">
