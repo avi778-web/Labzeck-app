@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import {  Bell, Check, ChefHat, Globe2, Hammer, Home, LockKeyhole, Mail, MapPin, MessageCircle, MoreHorizontal, Plus, Search, ShieldCheck, Sparkles, Star, UserRound, Wallet, Wrench, Zap } from 'lucide-react'
+import {  ArrowRight, Bell, Check, ChefHat, Globe2, Hammer, Home, LockKeyhole, Mail, MapPin, MessageCircle, MoreHorizontal, Plus, Search, ShieldCheck, Sparkles, Star, UserRound, Wallet, Wrench, Zap } from 'lucide-react'
 import { LaunchAuthPanel } from '@/components/launch-auth-panel'
 import { authClient, useSession } from '@/lib/auth-client'
 
