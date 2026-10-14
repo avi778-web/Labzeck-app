@@ -1,5 +1,0 @@
-import { NextResponse } from 'next/server'
-import { getMongo } from '@/lib/mongodb'
-
-export async function GET(request: Request) { try { const userId = new URL(request.url).searchParams.get('id'); const { users } = await getMongo(); const user = userId ? await users.findOne({ userId }) : null; return NextResponse.json({ user }) } catch { return NextResponse.json({ error: 'Unable to load user' }, { status: 500 }) } }
-export async function POST(request: Request) { try { const body = await request.json(); if (!body.userId || !body.name) return NextResponse.json({ error: 'userId and name are required' }, { status: 400 }); const { users } = await getMongo(); await users.updateOne({ userId: body.userId }, { $set: { userId: body.userId, name: String(body.name).slice(0, 80), role: body.role === 'labour' ? 'labour' : 'user', updatedAt: new Date() }, $setOnInsert: { createdAt: new Date() } }, { upsert: true }); return NextResponse.json({ ok: true }) } catch { return NextResponse.json({ error: 'Unable to save user' }, { status: 500 }) } }
