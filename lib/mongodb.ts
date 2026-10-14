@@ -1,13 +1,14 @@
 import { MongoClient } from 'mongodb'
 
-const globalForMongo = globalThis as typeof globalThis & { labzeckMongo?: MongoClient }
+const globalForMongo = globalThis as typeof globalThis & { labzeckMongo?: MongoClient; labzeckMongoPromise?: Promise<MongoClient> }
 
 export async function getMongo() {
   const uri = process.env.MONGODB_CONNECTION_STRING_3 || process.env.MONGODB_CONNECTION_STRING || process.env.MONGODB_URI
   if (!uri) throw new Error('MongoDB is not configured')
   const client = globalForMongo.labzeckMongo ?? new MongoClient(uri)
-  if (process.env.NODE_ENV !== 'production') globalForMongo.labzeckMongo = client
-  await client.connect()
+  if (!globalForMongo.labzeckMongoPromise) globalForMongo.labzeckMongoPromise = client.connect().then(() => client)
+  const connectedClient = await globalForMongo.labzeckMongoPromise
+  globalForMongo.labzeckMongo = connectedClient
   const db = client.db(process.env.MONGODB_DATABASE || 'labzeck')
   return {
     db,
@@ -20,5 +21,6 @@ export async function getMongo() {
     jobs: db.collection('job_requests'),
     aiUsage: db.collection('ai_usage'),
     avatars: db.collection('profile_avatars'),
+    wallets: db.collection('wallets'),
   }
 }

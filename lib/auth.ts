@@ -6,6 +6,7 @@ const baseURL = process.env.BETTER_AUTH_URL ?? (process.env.VERCEL_PROJECT_PRODU
 
 export const auth = betterAuth({
   database: pool,
+  secret: process.env.BETTER_AUTH_SECRET,
   baseURL,
   emailAndPassword: { enabled: true, autoSignIn: true },
   trustedOrigins: [
