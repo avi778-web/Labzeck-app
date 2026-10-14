@@ -20,5 +20,6 @@ export async function getMongo() {
     jobs: db.collection('job_requests'),
     aiUsage: db.collection('ai_usage'),
     avatars: db.collection('profile_avatars'),
+    wallets: db.collection('wallets'),
   }
 }
