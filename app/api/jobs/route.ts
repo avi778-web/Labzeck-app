@@ -12,10 +12,10 @@ export async function POST(request: NextRequest) {
     const user = await users.findOne({ userId })
     const job = { jobId: crypto.randomUUID(), userId, labourId: parsed.data.labourId, ...parsed.data, userLocation: user?.currentLocation || parsed.data.location, status: 'requested', createdAt: new Date(), updatedAt: new Date() }
     await db.collection('job_requests').insertOne(job)
-    console.log('[v0] Job saved:', job.jobId)
+    console.log('[Labzeck] Job saved:', job.jobId)
     return NextResponse.json({ success: true, job }, { status: 201 })
   } catch (error) {
-    console.error('[v0] Job save failed:', error)
+    console.error('[Labzeck] Job save failed:', error)
     return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Job could not be saved' }, { status: 500 })
   }
 }
@@ -30,10 +30,10 @@ export async function PATCH(request: NextRequest) {
     if (parsed.data.negotiatedRate) update.negotiatedRate = parsed.data.negotiatedRate
     const result = await db.collection('job_requests').findOneAndUpdate({ jobId: body.jobId, labourId: body.labourId }, { $set: update }, { returnDocument: 'after' })
     if (!result) return NextResponse.json({ success: false, error: 'Job request not found.' }, { status: 404 })
-    console.log('[v0] Job updated:', body.jobId)
+    console.log('[Labzeck] Job updated:', body.jobId)
     return NextResponse.json({ success: true, job: result })
   } catch (error) {
-    console.error('[v0] Job update failed:', error)
+    console.error('[Labzeck] Job update failed:', error)
     return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Job could not be updated' }, { status: 500 })
   }
 }

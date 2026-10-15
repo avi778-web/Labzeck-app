@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     }
     return NextResponse.json({ received: true })
   } catch (error) {
-    console.error('[v0] webhook failed', error)
+    console.error('[Labzeck] webhook failed', error)
     return NextResponse.json({ error: 'Invalid webhook' }, { status: 400 })
   }
 }

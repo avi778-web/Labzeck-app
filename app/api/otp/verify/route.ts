@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     if (result.status !== 'approved') return NextResponse.json({ ok: false, error: 'That code is not valid.' }, { status: 401 })
     return NextResponse.json({ ok: true })
   } catch (error) {
-    console.error('[v0] OTP verification failed', error)
+    console.error('[Labzeck] OTP verification failed', error)
     return NextResponse.json({ ok: false, error: 'Verification failed. Please request a new code.' }, { status: 400 })
   }
 }

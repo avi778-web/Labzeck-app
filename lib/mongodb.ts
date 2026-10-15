@@ -9,11 +9,11 @@ export async function getMongo() {
   if (!globalForMongo.labzeckMongoPromise) {
     globalForMongo.labzeckMongoPromise = client.connect().then((connected) => {
       globalForMongo.labzeckMongo = connected
-      console.log('[v0] Database connected successfully')
+      console.log('[Labzeck] Database connected successfully')
       return connected
     }).catch((error) => {
       globalForMongo.labzeckMongoPromise = undefined
-      console.error('[v0] Database connection failed:', error instanceof Error ? error.message : error)
+      console.error('[Labzeck] Database connection failed:', error instanceof Error ? error.message : error)
       throw error
     })
   }

@@ -23,10 +23,10 @@ export async function POST(request: NextRequest) {
     const now = new Date()
     const document = { labourId: crypto.randomUUID(), ...parsed.data, workerRank: 1, rating: 0, createdAt: now, updatedAt: now }
     await labourers.insertOne(document)
-    console.log('[v0] Labour profile saved:', document.labourId)
+    console.log('[Labzeck] Labour profile saved:', document.labourId)
     return NextResponse.json({ success: true, labourer: document }, { status: 201 })
   } catch (error) {
-    console.error('[v0] Labour profile save failed:', error)
+    console.error('[Labzeck] Labour profile save failed:', error)
     return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Labour profile could not be saved' }, { status: 500 })
   }
 }

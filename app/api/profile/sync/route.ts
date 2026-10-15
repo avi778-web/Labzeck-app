@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     }
     return NextResponse.json({ ok: true, role })
   } catch (error) {
-    console.error('[v0] Profile save failed:', error)
+    console.error('[Labzeck] Profile save failed:', error)
     return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Profile could not be saved' }, { status: 500 })
   }
 }

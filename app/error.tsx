@@ -5,7 +5,7 @@ import { useEffect } from 'react'
 export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     // Keep the route recoverable after a transient network or server error.
-    console.error('[v0] App route error', error)
+    console.error('[Labzeck] App route error', error)
   }, [error])
 
   return (

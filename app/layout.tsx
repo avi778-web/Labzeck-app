@@ -5,7 +5,6 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'Labzeck — Work made simple',
   description: 'Find reliable work or trusted help in your neighbourhood with Labzeck.',
-  generator: 'v0.app',
   icons: {
     icon: [
       {
