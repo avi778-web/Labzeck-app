@@ -26,7 +26,8 @@ export async function POST(request: Request) {
       await mongo.locations.updateOne({ userId }, { $set: { userId, role, lat: location.lat, lng: location.lng, updatedAt: now } }, { upsert: true })
     }
     return NextResponse.json({ ok: true, role })
-  } catch {
-    return NextResponse.json({ error: 'Profile could not be saved' }, { status: 500 })
+  } catch (error) {
+    console.error('[v0] Profile save failed:', error)
+    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Profile could not be saved' }, { status: 500 })
   }
 }
