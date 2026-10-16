@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     await client.verify.v2.services(process.env.TWILIO_VERIFY_SERVICE_SID!).verifications.create({ to: body.phone, channel: 'sms' })
     return NextResponse.json({ ok: true })
   } catch (error) {
-    console.error('[v0] OTP send failed', error)
+    console.error('[Labzeck] OTP send failed', error)
     return NextResponse.json({ ok: false, error: 'Unable to send code. Check the number and try again.' }, { status: 400 })
   }
 }

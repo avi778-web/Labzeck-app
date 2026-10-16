@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     await pool.query('INSERT INTO subscription_requests (user_id, plan, payer_name, utr) VALUES ($1, $2, $3, $4)', [userId, plan, payerName, utr])
     return NextResponse.json({ ok: true, status: 'pending' })
   } catch (error) {
-    console.error('[v0] subscription request failed', error)
+    console.error('[Labzeck] subscription request failed', error)
     return NextResponse.json({ ok: false, error: 'Could not submit request. Please try again.' }, { status: 500 })
   }
 }

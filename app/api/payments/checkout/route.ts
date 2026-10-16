@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     await subscriptions.updateOne({ _id: payment.insertedId }, { $set: { stripeSessionId: checkout.id } })
     return NextResponse.json({ url: checkout.url })
   } catch (error) {
-    console.error('[v0] checkout failed', error)
+    console.error('[Labzeck] checkout failed', error)
     return NextResponse.json({ error: 'Unable to start secure checkout' }, { status: 500 })
   }
 }
