@@ -9,7 +9,8 @@ export async function POST(request: NextRequest) {
     if (!response.ok) return NextResponse.json({ success: false, error: 'Google sign-in could not be verified.' }, { status: 401 })
     const googleUser = await response.json() as { sub?: string; email?: string; name?: string; picture?: string; aud?: string }
     if (!googleUser.sub || !googleUser.email) return NextResponse.json({ success: false, error: 'Google profile is incomplete.' }, { status: 401 })
-    if (process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && googleUser.aud !== process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) return NextResponse.json({ success: false, error: 'Google client ID does not match.' }, { status: 401 })
+    const expectedClientId = process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
+    if (expectedClientId && googleUser.aud !== expectedClientId) return NextResponse.json({ success: false, error: 'Google client ID does not match the configured OAuth client.' }, { status: 401 })
     const { users } = await getMongo()
     const now = new Date()
     const user = await users.findOneAndUpdate({ googleId: googleUser.sub }, { $set: { googleId: googleUser.sub, email: googleUser.email.toLowerCase(), name: googleUser.name || googleUser.email.split('@')[0], image: googleUser.picture || null, updatedAt: now }, $setOnInsert: { createdAt: now, provider: 'google' } }, { upsert: true, returnDocument: 'after' })

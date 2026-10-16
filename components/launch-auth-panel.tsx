@@ -7,7 +7,7 @@ import { ArrowRight, BriefcaseBusiness, Eye, EyeOff, Mail, Phone, Sparkles, User
 import { authClient } from '@/lib/auth-client'
 
 type Role = 'labour' | 'hirer'
-type GoogleIdentity = { accounts: { id: { initialize: (config: { client_id: string; callback: (response: { credential: string }) => void; auto_select?: boolean }) => void; prompt: () => void; renderButton: (element: HTMLElement, options: { type: string; theme: string; size: string; text: string; width: number }) => void } } }
+type GoogleIdentity = { accounts: { id: { initialize: (config: { client_id: string; callback: (response: { credential: string }) => void; auto_select?: boolean }) => void; prompt: (listener?: (notification: { isNotDisplayed: () => boolean; getNotDisplayedReason: () => string; isSkippedMoment: () => boolean; getSkippedReason: () => string }) => void) => void; renderButton: (element: HTMLElement, options: { type: string; theme: string; size: string; text: string; width: number }) => void } } }
 declare global { interface Window { google?: { accounts: { id: GoogleIdentity['accounts']['id'] } } } }
 
 export function LaunchAuthPanel({ onSuccess, onRole }: { language?: string; onSuccess?: (name?: string) => void; onRole?: (role: Role) => void }) {
@@ -33,7 +33,8 @@ export function LaunchAuthPanel({ onSuccess, onRole }: { language?: string; onSu
   const [googleLoading, setGoogleLoading] = useState(false)
   const [googleReady, setGoogleReady] = useState(false)
   const googleButtonRef = useRef<HTMLDivElement>(null)
-  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim()
+  const googleClientIdLooksValid = Boolean(googleClientId && googleClientId.endsWith('.apps.googleusercontent.com'))
 
   useEffect(() => {
     if (!googleReady || !googleClientId || !googleButtonRef.current || !window.google) return
@@ -54,11 +55,17 @@ export function LaunchAuthPanel({ onSuccess, onRole }: { language?: string; onSu
 
   function startGoogleSignIn() {
     setError('')
-    if (!googleClientId) { setError('Google sign-in is not configured yet. Add NEXT_PUBLIC_GOOGLE_CLIENT_ID to enable it.'); return }
+    if (!googleClientId) { setError('Google sign-in is not configured yet. Add NEXT_PUBLIC_GOOGLE_CLIENT_ID.'); return }
+    if (!googleClientIdLooksValid) { setError('Google Client ID is invalid. It must end with .apps.googleusercontent.com.'); return }
     const google = window.google
     if (!google) { setError('Google sign-in is still loading. Please try again.'); return }
     google.accounts.id.initialize({ client_id: googleClientId, callback: response => void handleGoogleCredential(response.credential) })
-    google.accounts.id.prompt()
+    google.accounts.id.prompt(notification => {
+      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+        const reason = notification.getNotDisplayedReason() || notification.getSkippedReason()
+        setError(reason === 'unregistered_origin' ? 'This domain is not authorized in Google Cloud Console.' : 'Google account picker could not open. Check the OAuth Client ID and authorized origins.')
+      }
+    })
   }
 
   useEffect(() => { if (!otpSent || countdown <= 0) return; const timer = window.setInterval(() => setCountdown(value => value - 1), 1000); return () => window.clearInterval(timer) }, [otpSent, countdown])
