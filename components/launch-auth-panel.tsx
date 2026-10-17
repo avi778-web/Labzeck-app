@@ -25,9 +25,15 @@ export function LaunchAuthPanel({ onSuccess, onRole }: { language?: string; onSu
   const [occupation, setOccupation] = useState('')
   const [experience, setExperience] = useState('')
   const [phoneSheet, setPhoneSheet] = useState(false)
+  const [countryCode, setCountryCode] = useState('+91')
   const [phone, setPhone] = useState('')
   const [otp, setOtp] = useState('')
   const [otpSent, setOtpSent] = useState(false)
+  const [emailOtpSent, setEmailOtpSent] = useState(false)
+  const [emailOtp, setEmailOtp] = useState('')
+  const [emailOtpToken, setEmailOtpToken] = useState('')
+  const [emailCountdown, setEmailCountdown] = useState(60)
+  const [emailVerified, setEmailVerified] = useState(false)
   const [countdown, setCountdown] = useState(45)
   const [googleLoading, setGoogleLoading] = useState(false)
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim()
@@ -59,8 +65,18 @@ export function LaunchAuthPanel({ onSuccess, onRole }: { language?: string; onSu
   }
 
   useEffect(() => { if (!otpSent || countdown <= 0) return; const timer = window.setInterval(() => setCountdown(value => value - 1), 1000); return () => window.clearInterval(timer) }, [otpSent, countdown])
+  useEffect(() => { if (!emailOtpSent || emailCountdown <= 0) return; const timer = window.setInterval(() => setEmailCountdown(value => value - 1), 1000); return () => window.clearInterval(timer) }, [emailOtpSent, emailCountdown])
 
-  async function sendOtp(event: FormEvent<HTMLFormElement>) { event.preventDefault(); setError(''); try { const normalized = phone.replace(/\s/g, ''); const response = await fetch('/api/otp/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: normalized.startsWith('+91') ? normalized : `+91${normalized}` }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error); setPhone(normalized.startsWith('+91') ? normalized : `+91${normalized}`); setOtpSent(true); setCountdown(45) } catch (error) { setError(error instanceof Error ? error.message : 'Unable to send code.') } }
+  async function sendEmailOtp() {
+    setError(''); setLoading(true)
+    try { const response = await fetch('/api/otp/email/send', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ email }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error); setEmailOtpToken(data.token); setEmailOtpSent(true); setEmailCountdown(60) } catch (error) { setError(error instanceof Error ? error.message : 'Unable to send verification email.') } finally { setLoading(false) }
+  }
+  async function verifyEmailOtp(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setError(''); setLoading(true)
+    try { const response = await fetch('/api/otp/email/send', { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ email, code:emailOtp, token:emailOtpToken }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error); setEmailVerified(true); setEmailOtpSent(false); setError('Email verified. You can now create your Labzeck account.') } catch (error) { setError(error instanceof Error ? error.message : 'Verification failed.') } finally { setLoading(false) }
+  }
+
+  async function sendOtp(event: FormEvent<HTMLFormElement>) { event.preventDefault(); setError(''); try { const normalized = phone.replace(/\s/g, ''); const fullPhone = normalized.startsWith('+') ? normalized : `${countryCode}${normalized}`; const response = await fetch('/api/otp/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: fullPhone }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error); setPhone(fullPhone); setOtpSent(true); setCountdown(45) } catch (error) { setError(error instanceof Error ? error.message : 'Unable to send code.') } }
   async function verifyOtp(event: FormEvent<HTMLFormElement>) { event.preventDefault(); setError(''); try { const response = await fetch('/api/otp/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, code: otp }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error); setPhoneSheet(false); setError('Phone verified successfully. You can finish account setup below.') } catch (error) { setError(error instanceof Error ? error.message : 'Verification failed.') } }
 
   function changeMode(next: 'sign-in' | 'sign-up') {
@@ -69,7 +85,7 @@ export function LaunchAuthPanel({ onSuccess, onRole }: { language?: string; onSu
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setError(''); setLoading(true)
+    setError(''); if (mode === 'sign-up' && !emailVerified) { setError('Verify your email with OTP before creating your account.'); return } setLoading(true)
     try {
       const result = mode === 'sign-in'
         ? await authClient.signIn.email({ email: email.trim().toLowerCase(), password })
@@ -108,11 +124,13 @@ export function LaunchAuthPanel({ onSuccess, onRole }: { language?: string; onSu
   </div>
 
 
-  if (phoneSheet) return <div className="auth-panel auth-motion auth-sheet-view"><div className="sheet-grabber" /><h2>{otpSent ? 'Verify your phone' : 'Verify your phone number'}</h2><p className="sheet-copy">{otpSent ? `We sent a 6-digit code to ${phone}.` : 'Use your India mobile number to secure your Labzeck account.'}</p>{otpSent ? <form className="form-stack" onSubmit={verifyOtp}><label>6-digit code<input inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={otp} onChange={event => setOtp(event.target.value.replace(/\D/g, ''))} placeholder="000000" required /></label><p className="otp-countdown">{countdown > 0 ? `Resend available in ${countdown}s` : <button type="button" className="text-button" onClick={() => { setOtpSent(false); setOtp('') }}>Resend code</button>}</p>{error && <p className="form-error" role="alert">{error}</p>}<button className="primary wide" type="submit">Verify phone <ArrowRight size={17}/></button></form> : <form className="form-stack" onSubmit={sendOtp}><label>Mobile number<input inputMode="tel" value={phone} onChange={event => setPhone(event.target.value.replace(/[^0-9+ ]/g, ''))} placeholder="+91 98765 43210" required /></label>{error && <p className="form-error" role="alert">{error}</p>}<button className="primary wide" type="submit">Send verification code <ArrowRight size={17}/></button></form>}<button className="sheet-cancel" onClick={() => setPhoneSheet(false)}>Cancel</button></div>
+  if (emailOtpSent) return <div className="auth-panel auth-motion auth-sheet-view"><div className="sheet-grabber" /><span className="step-chip"><Mail size={12}/> EMAIL VERIFICATION</span><h2>Verify your email</h2><p className="sheet-copy">We sent a secure 6-digit code to {email}.</p><form className="form-stack" onSubmit={verifyEmailOtp}><label>Verification code<input className="otp-input" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={emailOtp} onChange={event=>setEmailOtp(event.target.value.replace(/\D/g,''))} placeholder="000000" required /></label><p className="otp-countdown">{emailCountdown > 0 ? `Resend available in ${emailCountdown}s` : <button type="button" className="text-button" onClick={sendEmailOtp}>Resend code</button>}</p>{error && <p className="form-error" role="alert">{error}</p>}<button className="primary wide" type="submit" disabled={loading}>{loading ? 'Checking code…' : 'Verify email'} <ArrowRight size={17}/></button></form><button className="sheet-cancel" onClick={()=>setEmailOtpSent(false)}>Use a different email</button></div>
+
+  if (phoneSheet) return <div className="auth-panel auth-motion auth-sheet-view"><div className="sheet-grabber" /><h2>{otpSent ? 'Verify your phone' : 'Verify your phone number'}</h2><p className="sheet-copy">{otpSent ? `We sent a 6-digit code to ${phone}.` : 'Use your India mobile number to secure your Labzeck account.'}</p>{otpSent ? <form className="form-stack" onSubmit={verifyOtp}><label>6-digit code<input inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={otp} onChange={event => setOtp(event.target.value.replace(/\D/g, ''))} placeholder="000000" required /></label><p className="otp-countdown">{countdown > 0 ? `Resend available in ${countdown}s` : <button type="button" className="text-button" onClick={() => { setOtpSent(false); setOtp('') }}>Resend code</button>}</p>{error && <p className="form-error" role="alert">{error}</p>}<button className="primary wide" type="submit">Verify phone <ArrowRight size={17}/></button></form> : <form className="form-stack" onSubmit={sendOtp}><label>Mobile number<div className="phone-number-row"><select aria-label="Country code" value={countryCode} onChange={event=>setCountryCode(event.target.value)}><option value="+91">IN +91</option><option value="+1">US +1</option><option value="+44">UK +44</option><option value="+971">UAE +971</option></select><input inputMode="tel" value={phone} onChange={event => setPhone(event.target.value.replace(/[^0-9+ ]/g, ''))} placeholder="98765 43210" required /></div></label>{error && <p className="form-error" role="alert">{error}</p>}<button className="primary wide" type="submit">Send verification code <ArrowRight size={17}/></button></form>}<button className="sheet-cancel" onClick={() => setPhoneSheet(false)}>Cancel</button></div>
 
   return <div className={`auth-panel auth-motion auth-${mode}`}>
     <div className="auth-provider-heading"><h2>Welcome to <em>Labzeck</em></h2><p>Get started by signing in to your account</p></div>
-    <div className="auth-providers"><Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" /><button type="button" className="provider-button" onClick={startGoogleSignIn} disabled={googleLoading}><span className="google-mark">G</span> {googleLoading ? 'Opening Google…' : 'Continue with Google'}</button><button type="button" className="provider-button" onClick={() => setError('Use email to create your secure Labzeck account.')}><Mail size={17}/> Continue with Email</button><button type="button" className="provider-button" onClick={() => { setError(''); setPhoneSheet(true) }}><Phone size={17}/> Continue with phone</button></div>
+    <div className="auth-providers"><Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" /><button type="button" className="provider-button" onClick={startGoogleSignIn} disabled={googleLoading}><span className="google-mark">G</span> {googleLoading ? 'Opening Google…' : 'Continue with Google'}</button><button type="button" className="provider-button" onClick={() => { setError(''); if (!email.trim()) setError('Enter your email below first.'); else void sendEmailOtp() }} disabled={loading}><Mail size={17}/> {loading ? 'Sending verification…' : 'Verify email with OTP'}</button><button type="button" className="provider-button" onClick={() => { setError(''); setPhoneSheet(true) }}><Phone size={17}/> Continue with phone</button></div>
     <div className="auth-divider"><span>or use email</span></div>
     <div className="auth-tabs" role="tablist" aria-label="Account access"><button type="button" role="tab" aria-selected={mode === 'sign-in'} className={mode === 'sign-in' ? 'active' : ''} onClick={() => changeMode('sign-in')}>Sign in</button><button type="button" role="tab" aria-selected={mode === 'sign-up'} className={mode === 'sign-up' ? 'active' : ''} onClick={() => changeMode('sign-up')}>Sign up</button></div>
     <div className="auth-heading"><span className="auth-status-dot" /> <span>{mode === 'sign-in' ? 'Access your account' : 'Create your account'}</span></div>
