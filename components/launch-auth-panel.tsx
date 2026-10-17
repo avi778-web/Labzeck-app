@@ -1,6 +1,6 @@
 'use client'
 
-import { FormEvent, useEffect, useRef, useState } from 'react'
+import { FormEvent, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Script from 'next/script'
 import { ArrowRight, BriefcaseBusiness, Eye, EyeOff, Mail, Phone, Sparkles, UsersRound } from 'lucide-react'
@@ -24,24 +24,14 @@ export function LaunchAuthPanel({ onSuccess, onRole }: { language?: string; onSu
   const [role, setRole] = useState<Role | ''>('')
   const [occupation, setOccupation] = useState('')
   const [experience, setExperience] = useState('')
-  const [googleSheet, setGoogleSheet] = useState(false)
   const [phoneSheet, setPhoneSheet] = useState(false)
   const [phone, setPhone] = useState('')
   const [otp, setOtp] = useState('')
   const [otpSent, setOtpSent] = useState(false)
   const [countdown, setCountdown] = useState(45)
   const [googleLoading, setGoogleLoading] = useState(false)
-  const [googleReady, setGoogleReady] = useState(false)
-  const googleButtonRef = useRef<HTMLDivElement>(null)
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim()
   const googleClientIdLooksValid = Boolean(googleClientId && googleClientId.endsWith('.apps.googleusercontent.com'))
-
-  useEffect(() => {
-    if (!googleReady || !googleClientId || !googleButtonRef.current || !window.google) return
-    googleButtonRef.current.innerHTML = ''
-    window.google.accounts.id.initialize({ client_id: googleClientId, callback: response => void handleGoogleCredential(response.credential) })
-    window.google.accounts.id.renderButton(googleButtonRef.current, { type: 'standard', theme: 'outline', size: 'large', text: 'continue_with', width: 340 })
-  }, [googleReady, googleClientId])
 
   async function handleGoogleCredential(credential: string) {
     setError(''); setGoogleLoading(true)
@@ -49,7 +39,7 @@ export function LaunchAuthPanel({ onSuccess, onRole }: { language?: string; onSu
       const response = await fetch('/api/auth/google', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ credential }) })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Google sign-in failed.')
-      setName(data.user?.name || 'Labzeck member'); setEmail(data.user?.email || ''); setGoogleSheet(false); setProfile(true)
+      setName(data.user?.name || 'Labzeck member'); setEmail(data.user?.email || ''); setProfile(true)
     } catch (error) { setError(error instanceof Error ? error.message : 'Google sign-in failed.') } finally { setGoogleLoading(false) }
   }
 
@@ -117,12 +107,12 @@ export function LaunchAuthPanel({ onSuccess, onRole }: { language?: string; onSu
     {role === 'labour' && <form className="form-stack auth-detail-form" onSubmit={(event) => { event.preventDefault(); if (!occupation || !experience) return setError('Please complete your work details.'); finish('labour') }}><label>Occupation<select value={occupation} onChange={event => setOccupation(event.target.value)} required><option value="">Select occupation</option><option>Electrician</option><option>Plumber</option><option>Mason</option><option>Chef</option><option>Other</option></select></label><label>Experience<select value={experience} onChange={event => setExperience(event.target.value)} required><option value="">Select experience</option><option>Less than 1 year</option><option>1–5 years</option><option>5–10 years</option><option>10+ years</option></select></label>{error && <p className="form-error" role="alert">{error}</p>}<button className="primary wide" type="submit">Continue to Labzeck <ArrowRight size={17} /></button></form>}
   </div>
 
-  if (googleSheet) return <><Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" onLoad={() => setGoogleReady(true)} /><div className="auth-backdrop google-fullscreen" role="presentation" onClick={() => setGoogleSheet(false)}><div className="auth-panel auth-motion auth-sheet-view" role="dialog" aria-modal="true" aria-labelledby="google-sheet-title" onClick={event => event.stopPropagation()}><div className="sheet-grabber" /><div className="google-page-brand"><span>Lab</span><strong>zeck</strong></div><h2 id="google-sheet-title">Choose a Google account</h2><p className="sheet-copy">Select an account to continue securely. No extra confirmation is needed.</p><div ref={googleButtonRef} className="google-official-button" aria-label="Continue with Google">{!googleReady && <button className="account-option" disabled><span className="google-mark">G</span><span><strong>Loading Google accounts…</strong><small>Google account picker</small></span></button>}</div><button className="account-option" disabled={googleLoading} onClick={startGoogleSignIn}><span className="account-plus">+</span><span><strong>Use another account</strong><small>Open Google sign-in and choose another account</small></span><ArrowRight size={17}/></button>{error && <p className="form-error" role="alert">{error}</p>}<button className="sheet-cancel" onClick={() => setGoogleSheet(false)}>Cancel</button></div></div></>
+
   if (phoneSheet) return <div className="auth-panel auth-motion auth-sheet-view"><div className="sheet-grabber" /><h2>{otpSent ? 'Verify your phone' : 'Verify your phone number'}</h2><p className="sheet-copy">{otpSent ? `We sent a 6-digit code to ${phone}.` : 'Use your India mobile number to secure your Labzeck account.'}</p>{otpSent ? <form className="form-stack" onSubmit={verifyOtp}><label>6-digit code<input inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={otp} onChange={event => setOtp(event.target.value.replace(/\D/g, ''))} placeholder="000000" required /></label><p className="otp-countdown">{countdown > 0 ? `Resend available in ${countdown}s` : <button type="button" className="text-button" onClick={() => { setOtpSent(false); setOtp('') }}>Resend code</button>}</p>{error && <p className="form-error" role="alert">{error}</p>}<button className="primary wide" type="submit">Verify phone <ArrowRight size={17}/></button></form> : <form className="form-stack" onSubmit={sendOtp}><label>Mobile number<input inputMode="tel" value={phone} onChange={event => setPhone(event.target.value.replace(/[^0-9+ ]/g, ''))} placeholder="+91 98765 43210" required /></label>{error && <p className="form-error" role="alert">{error}</p>}<button className="primary wide" type="submit">Send verification code <ArrowRight size={17}/></button></form>}<button className="sheet-cancel" onClick={() => setPhoneSheet(false)}>Cancel</button></div>
 
   return <div className={`auth-panel auth-motion auth-${mode}`}>
     <div className="auth-provider-heading"><h2>Welcome to <em>Labzeck</em></h2><p>Get started by signing in to your account</p></div>
-    <div className="auth-providers"><button type="button" className="provider-button" onClick={() => { setError(''); setGoogleSheet(true) }}><span className="google-mark">G</span> Continue with Google</button><button type="button" className="provider-button" onClick={() => setError('Use email to create your secure Labzeck account.')}><Mail size={17}/> Continue with Email</button><button type="button" className="provider-button" onClick={() => { setError(''); setPhoneSheet(true) }}><Phone size={17}/> Continue with phone</button></div>
+    <div className="auth-providers"><Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" /><button type="button" className="provider-button" onClick={startGoogleSignIn} disabled={googleLoading}><span className="google-mark">G</span> {googleLoading ? 'Opening Google…' : 'Continue with Google'}</button><button type="button" className="provider-button" onClick={() => setError('Use email to create your secure Labzeck account.')}><Mail size={17}/> Continue with Email</button><button type="button" className="provider-button" onClick={() => { setError(''); setPhoneSheet(true) }}><Phone size={17}/> Continue with phone</button></div>
     <div className="auth-divider"><span>or use email</span></div>
     <div className="auth-tabs" role="tablist" aria-label="Account access"><button type="button" role="tab" aria-selected={mode === 'sign-in'} className={mode === 'sign-in' ? 'active' : ''} onClick={() => changeMode('sign-in')}>Sign in</button><button type="button" role="tab" aria-selected={mode === 'sign-up'} className={mode === 'sign-up' ? 'active' : ''} onClick={() => changeMode('sign-up')}>Sign up</button></div>
     <div className="auth-heading"><span className="auth-status-dot" /> <span>{mode === 'sign-in' ? 'Access your account' : 'Create your account'}</span></div>
