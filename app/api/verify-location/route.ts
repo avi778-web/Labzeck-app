@@ -12,7 +12,8 @@ export async function POST(request: Request) {
     const body = await request.json() as { lat?: number; lng?: number; address?: string }
     const lat = Number(body.lat)
     const lng = Number(body.lng)
-    const text = String(body.address || '').toLowerCase()
+    const text = String(body.address || '').trim().toLowerCase()
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) return NextResponse.json({ serviceable: false, error: unavailable }, { status: 403 })
     const region = regions.find(item => item.keywords.some(keyword => text.includes(keyword)) || (Number.isFinite(lat) && Number.isFinite(lng) && lat >= item.lat[0] && lat <= item.lat[1] && lng >= item.lng[0] && lng <= item.lng[1]))
     if (!region) return NextResponse.json({ serviceable: false, error: unavailable }, { status: 403 })
     return NextResponse.json({ serviceable: true, region: region.name, coordinates: { lat, lng } })

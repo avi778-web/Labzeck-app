@@ -16,9 +16,9 @@ function Recenter({position}:{position: Coordinates}) { const map = useMap(); us
 
 export default function LocationPicker({ onContinue, onBack }: Props) {
   const [position, setPosition] = useState<Coordinates>({ lat: defaultCenter[0], lng: defaultCenter[1] })
-  const [address, setAddress] = useState('Delhi NCR')
+  const [address, setAddress] = useState('Choose your service location')
   const [message, setMessage] = useState('')
-  const [serviceable, setServiceable] = useState(true)
+  const [serviceable, setServiceable] = useState(false)
   const [loading, setLoading] = useState(false)
   const [checking, setChecking] = useState(false)
   const [manual, setManual] = useState('')
