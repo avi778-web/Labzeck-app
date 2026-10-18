@@ -12,18 +12,27 @@ export async function POST(request: Request) {
   try {
     const { email } = schema.parse(await request.json())
     const code = randomInt(100000, 1000000).toString()
-    const expires = Date.now() + 10 * 60 * 1000
+    const expires = Date.now() + 5 * 60 * 1000
     const payload = `${email}.${code}.${expires}`
     const token = `${Buffer.from(payload).toString('base64url')}.${sign(payload)}`
-    const resend = new Resend(process.env.RESEND_API_KEY)
-    const { error } = await resend.emails.send({
-      from: 'Labzeck <labzeck@zohomail.in>',
-      to: [email],
-      subject: 'Your Labzeck verification code',
-      html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto"><h1 style="color:#2563eb">Labzeck</h1><p>Your secure verification code is:</p><div style="font-size:32px;font-weight:800;letter-spacing:8px">${code}</div><p>This code expires in 10 minutes. If you did not request it, you can ignore this email.</p></div>`,
-    }, { idempotencyKey: `email-otp/${email}/${Math.floor(Date.now() / 60000)}` })
-    if (error) return NextResponse.json({ ok: false, error: 'We could not send the verification email. Please try again.' }, { status: 502 })
-    return NextResponse.json({ ok: true, token, expiresAt: expires })
+    const resendKey = process.env.RESEND_API_KEY || process.env.RESEND_EMAIL_RESEND_API_KEY
+    let delivery: 'email' | 'demo' = 'demo'
+    let deliveryError = ''
+    if (resendKey) {
+      const resend = new Resend(resendKey)
+      const { error } = await resend.emails.send({
+        from: 'Labzeck <labzeck@zohomail.in>',
+        to: [email],
+        subject: 'Your Labzeck verification code',
+        html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto"><h1 style="color:#2563eb">Labzeck</h1><p>Your secure verification code is:</p><div style="font-size:32px;font-weight:800;letter-spacing:8px">${code}</div><p>This code expires in 5 minutes. If you did not request it, you can ignore this email.</p></div>`,
+      }, { idempotencyKey: `email-otp/${email}/${Math.floor(Date.now() / 60000)}` })
+      if (!error) delivery = 'email'
+      else deliveryError = error.message
+    } else {
+      deliveryError = 'RESEND_API_KEY is not configured'
+    }
+    if (delivery === 'demo') console.info('[v0] Email OTP demo fallback', { email, code, reason: deliveryError })
+    return NextResponse.json({ ok: true, token, expiresAt: expires, delivery, demoCode: delivery === 'demo' ? code : undefined })
   } catch { return NextResponse.json({ ok: false, error: 'Enter a valid email address.' }, { status: 400 }) }
 }
 

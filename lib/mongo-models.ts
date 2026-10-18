@@ -1,0 +1,48 @@
+import type { Db, ObjectId } from 'mongodb'
+
+export type AuthProvider = 'credentials' | 'google'
+
+export type UserDocument = {
+  _id?: ObjectId
+  name: string
+  email: string
+  phone?: string
+  passwordHash?: string
+  verifiedStatus: boolean
+  authProvider: AuthProvider
+  createdAt: Date
+  updatedAt: Date
+  location?: { address: string; city: string; region: string; coordinates: { lat: number; lng: number }; isServiceable: boolean; verifiedAt: Date }
+}
+
+export type BankDetailDocument = {
+  _id?: ObjectId
+  userId: ObjectId
+  accountHolderName: string
+  bankName: string
+  accountNumber: string
+  ifscCode: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+export type PaymentDocument = {
+  _id?: ObjectId
+  userId: ObjectId
+  transactionId: string
+  amount: number
+  paymentMethod: string
+  status: 'pending' | 'paid' | 'failed' | 'refunded'
+  createdAt: Date
+  updatedAt: Date
+}
+
+export async function ensureMongoSchema(db: Db) {
+  await Promise.all([
+    db.collection<UserDocument>('users').createIndex({ email: 1 }, { unique: true, name: 'users_email_unique' }),
+    db.collection<UserDocument>('users').createIndex({ phone: 1 }, { unique: true, sparse: true, name: 'users_phone_unique' }),
+    db.collection<BankDetailDocument>('bank_details').createIndex({ userId: 1 }, { unique: true, name: 'bank_details_user_unique' }),
+    db.collection<PaymentDocument>('payments').createIndex({ userId: 1, createdAt: -1 }, { name: 'payments_user_created' }),
+    db.collection<PaymentDocument>('payments').createIndex({ transactionId: 1 }, { unique: true, name: 'payments_transaction_unique' }),
+  ])
+}
