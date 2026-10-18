@@ -1,4 +1,5 @@
 import { MongoClient } from 'mongodb'
+import { ensureMongoSchema } from '@/lib/mongo-models'
 
 const globalForMongo = globalThis as typeof globalThis & { labzeckMongo?: MongoClient; labzeckMongoPromise?: Promise<MongoClient> }
 
@@ -19,6 +20,7 @@ export async function getMongo() {
   }
   const connectedClient = await globalForMongo.labzeckMongoPromise
   const db = connectedClient.db(process.env.MONGODB_DATABASE || 'labzeck')
+  await ensureMongoSchema(db)
   return {
     db,
     users: db.collection('users'),
