@@ -12,6 +12,7 @@ export type UserDocument = {
   authProvider: AuthProvider
   createdAt: Date
   updatedAt: Date
+  location?: { address: string; city: string; region: string; coordinates: { lat: number; lng: number }; isServiceable: boolean; verifiedAt: Date }
 }
 
 export type BankDetailDocument = {
