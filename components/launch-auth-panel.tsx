@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Script from 'next/script'
 import { ArrowRight, BriefcaseBusiness, Eye, EyeOff, Mail, Phone, Sparkles, UsersRound } from 'lucide-react'
-import { authClient } from '@/lib/auth-client'
+
 
 type Role = 'labour' | 'hirer'
 type GoogleIdentity = { accounts: { id: { initialize: (config: { client_id: string; callback: (response: { credential: string }) => void; auto_select?: boolean }) => void; prompt: (listener?: (notification: { isNotDisplayed: () => boolean; getNotDisplayedReason: () => string; isSkippedMoment: () => boolean; getSkippedReason: () => string }) => void) => void; renderButton: (element: HTMLElement, options: { type: string; theme: string; size: string; text: string; width: number }) => void } } }
@@ -96,14 +96,10 @@ export function LaunchAuthPanel({ onSuccess, onRole }: { language?: string; onSu
     event.preventDefault()
     setError(''); if (mode === 'sign-up' && !emailVerified) { setError('Verify your email with OTP before creating your account.'); return } setLoading(true)
     try {
-      const result = mode === 'sign-in'
-        ? await authClient.signIn.email({ email: email.trim().toLowerCase(), password })
-        : await authClient.signUp.email({ email: email.trim().toLowerCase(), password, name: name.trim() })
-      if (result.error) {
-        setError(mode === 'sign-in' ? 'Email or password is incorrect.' : 'This email may already be registered, or the details are invalid.')
-        return
-      }
-      setName((mode === 'sign-in' ? result.data?.user?.name : name) || 'Labzeck member')
+      const response = await fetch(mode === 'sign-in' ? '/api/mongo-auth/signin' : '/api/mongo-auth/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email.trim().toLowerCase(), password, name: name.trim(), verifiedStatus: emailVerified, authProvider: 'credentials' }) })
+      const result = await response.json() as { success?: boolean; message?: string; user?: { name?: string } }
+      if (!response.ok || !result.success) { setError(result.message || (mode === 'sign-in' ? 'Email or password is incorrect.' : 'This email may already be registered, or the details are invalid.')); return }
+      setName(result.user?.name || name || 'Labzeck member')
       setProfile(true)
     } catch {
       setError('Unable to connect. Please check your internet and try again.')

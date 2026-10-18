@@ -4,17 +4,17 @@ import { ensureMongoSchema } from '@/lib/mongo-models'
 const globalForMongo = globalThis as typeof globalThis & { labzeckMongo?: MongoClient; labzeckMongoPromise?: Promise<MongoClient> }
 
 export async function getMongo() {
-  const uri = process.env.MONGODB_URI || process.env.MONGODB_CONNECTION_STRING || process.env.MONGODB_CONNECTION_STRING_3
-  if (!uri) throw new Error('MongoDB is not configured. Set MONGODB_URI or MONGODB_CONNECTION_STRING.')
+  const uri = process.env.MONGODB_CONNECTION_STRING_10 || process.env.MONGODB_URI || process.env.MONGODB_CONNECTION_STRING || process.env.MONGODB_CONNECTION_STRING_3
+  if (!uri) throw new Error('MongoDB is not configured. Set MONGODB_CONNECTION_STRING_10 or MONGODB_URI.')
   const client = globalForMongo.labzeckMongo ?? new MongoClient(uri, { serverSelectionTimeoutMS: 10000 })
   if (!globalForMongo.labzeckMongoPromise) {
     globalForMongo.labzeckMongoPromise = client.connect().then((connected) => {
       globalForMongo.labzeckMongo = connected
-      console.log('[Labzeck] Database connected successfully')
+      console.log('✅ MongoDB Connected', { database: process.env.MONGODB_DATABASE || 'labzeck' })
       return connected
     }).catch((error) => {
       globalForMongo.labzeckMongoPromise = undefined
-      console.error('[Labzeck] Database connection failed:', error instanceof Error ? error.message : error)
+      console.error('❌ MongoDB Error:', error instanceof Error ? error.message : error)
       throw error
     })
   }

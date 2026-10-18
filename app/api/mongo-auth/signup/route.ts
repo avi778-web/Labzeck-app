@@ -25,7 +25,8 @@ export async function POST(request: Request) {
     const now = new Date()
     const user: UserDocument = { name, email, ...(phone ? { phone } : {}), passwordHash: await hashPassword(password), verifiedStatus: Boolean(body.verifiedStatus), authProvider: body.authProvider ?? 'credentials', createdAt: now, updatedAt: now }
     const result = await users.insertOne(user)
-    return NextResponse.json({ success: true, user: { id: result.insertedId.toString(), name, email, phone, verifiedStatus: user.verifiedStatus } }, { status: 201 })
+    console.log('✅ MongoDB User Saved', { collection: 'users', userId: result.insertedId.toString(), email })
+    return NextResponse.json({ success: true, message: 'User registered & saved successfully', user: { id: result.insertedId.toString(), name, email, phone, verifiedStatus: user.verifiedStatus } }, { status: 201 })
   } catch (error) {
     if (error && typeof error === 'object' && 'code' in error && error.code === 11000) return NextResponse.json({ success: false, message: 'User already registered with this Email or Phone. Please Sign In.' }, { status: 400 })
     console.error('[Labzeck] Mongo signup failed:', error)
