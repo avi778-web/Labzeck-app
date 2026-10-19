@@ -14,6 +14,7 @@ export type UserDocument = {
   updatedAt: Date
   location?: { address: string; city: string; region: string; coordinates: { lat: number; lng: number }; isServiceable: boolean; verifiedAt: Date }
   savedAddresses?: SavedAddress[]
+  preferences?: { language?: string }
 }
 
 export type BankDetailDocument = {
