@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { createHmac, randomInt } from 'node:crypto'
 import { Resend } from 'resend'
 import { z } from 'zod'
+import { createHash, timingSafeEqual } from 'node:crypto'
+import { getMongo } from '@/lib/mongodb'
 
 const schema = z.object({ email: z.string().email().transform(value => value.trim().toLowerCase()) })
 const secret = () => process.env.BETTER_AUTH_SECRET || process.env.RESEND_API_KEY || 'labzeck-otp-secret'
@@ -15,6 +17,8 @@ export async function POST(request: Request) {
     const expires = Date.now() + 5 * 60 * 1000
     const payload = `${email}.${code}.${expires}`
     const token = `${Buffer.from(payload).toString('base64url')}.${sign(payload)}`
+    const mongo = await getMongo()
+    await mongo.otpVerifications.updateOne({ identifier: email, channel: 'email' }, { $set: { identifier: email, channel: 'email', codeHash: createHash('sha256').update(code).digest('hex'), expiresAt: new Date(expires), attempts: 0, createdAt: new Date() } }, { upsert: true })
     const resendKey = process.env.RESEND_API_KEY || process.env.RESEND_EMAIL_RESEND_API_KEY
     let delivery: 'email' | 'demo' = 'demo'
     let deliveryError = ''
@@ -43,7 +47,16 @@ export async function PUT(request: Request) {
     const payload = Buffer.from(encoded, 'base64url').toString()
     if (sign(payload) !== signature) throw new Error('invalid token')
     const [tokenEmail, tokenCode, expires] = payload.split('.')
-    if (tokenEmail !== body.email.trim().toLowerCase() || tokenCode !== body.code || Number(expires) < Date.now()) throw new Error('invalid code')
+    if (tokenEmail !== body.email.trim().toLowerCase() || Number(expires) < Date.now()) throw new Error('invalid code')
+    const mongo = await getMongo()
+    const verification = await mongo.otpVerifications.findOne({ identifier: tokenEmail, channel: 'email', expiresAt: { $gt: new Date() } })
+    const submittedHash = createHash('sha256').update(body.code).digest('hex')
+    if (!verification || verification.attempts >= 5 || !timingSafeEqual(Buffer.from(verification.codeHash), Buffer.from(submittedHash))) {
+      await mongo.otpVerifications.updateOne({ identifier: tokenEmail, channel: 'email' }, { $inc: { attempts: 1 } })
+      throw new Error('invalid code')
+    }
+    await mongo.otpVerifications.updateOne({ identifier: tokenEmail, channel: 'email' }, { $set: { verifiedAt: new Date() }, $unset: { codeHash: '' } })
+    await mongo.users.updateOne({ email: tokenEmail }, { $set: { verifiedStatus: true, updatedAt: new Date() } })
     return NextResponse.json({ ok: true, verified: true })
   } catch { return NextResponse.json({ ok: false, error: 'That code is invalid or expired.' }, { status: 400 }) }
 }
