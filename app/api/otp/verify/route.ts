@@ -1,18 +1,32 @@
 import { NextResponse } from 'next/server'
 import twilio from 'twilio'
+import { createHash, timingSafeEqual } from 'node:crypto'
 import { z } from 'zod'
+import { getMongo } from '@/lib/mongodb'
 
-const schema = z.object({ phone: z.string(), code: z.string().regex(/^\d{4,8}$/) })
+const schema = z.object({ phone: z.string(), code: z.string().regex(/^\d{6}$/) })
 
 export async function POST(request: Request) {
   try {
     const body = schema.parse(await request.json())
-    const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
-    const result = await client.verify.v2.services(process.env.TWILIO_VERIFY_SERVICE_SID!).verificationChecks.create({ to: body.phone, code: body.code })
-    if (result.status !== 'approved') return NextResponse.json({ ok: false, error: 'That code is not valid.' }, { status: 401 })
-    return NextResponse.json({ ok: true })
+    const mongo = await getMongo()
+    let approved = false
+    if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_VERIFY_SERVICE_SID) {
+      const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+      const result = await client.verify.v2.services(process.env.TWILIO_VERIFY_SERVICE_SID).verificationChecks.create({ to: body.phone, code: body.code })
+      approved = result.status === 'approved'
+    } else {
+      const record = await mongo.otpVerifications.findOne({ identifier: body.phone, channel: 'phone', expiresAt: { $gt: new Date() } })
+      const submittedHash = createHash('sha256').update(body.code).digest('hex')
+      approved = Boolean(record && record.attempts < 5 && timingSafeEqual(Buffer.from(record.codeHash), Buffer.from(submittedHash)))
+      if (record && !approved) await mongo.otpVerifications.updateOne({ identifier: body.phone, channel: 'phone' }, { $inc: { attempts: 1 } })
+    }
+    if (!approved) return NextResponse.json({ ok: false, error: 'That code is not valid.' }, { status: 401 })
+    await mongo.users.updateOne({ phone: body.phone }, { $set: { verifiedStatus: true, updatedAt: new Date() }, $setOnInsert: { phone: body.phone, name: body.phone, authProvider: 'credentials', createdAt: new Date() } }, { upsert: true })
+    await mongo.otpVerifications.updateOne({ identifier: body.phone, channel: 'phone' }, { $set: { verifiedAt: new Date() }, $unset: { codeHash: '' } })
+    return NextResponse.json({ ok: true, verified: true })
   } catch (error) {
-    console.error('[Labzeck] OTP verification failed', error)
+    console.error('❌ Phone OTP verification error:', error)
     return NextResponse.json({ ok: false, error: 'Verification failed. Please request a new code.' }, { status: 400 })
   }
 }

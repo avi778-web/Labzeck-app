@@ -13,6 +13,8 @@ export type UserDocument = {
   createdAt: Date
   updatedAt: Date
   location?: { address: string; city: string; region: string; coordinates: { lat: number; lng: number }; isServiceable: boolean; verifiedAt: Date }
+  savedAddresses?: SavedAddress[]
+  preferences?: { language?: string }
 }
 
 export type BankDetailDocument = {
@@ -24,6 +26,28 @@ export type BankDetailDocument = {
   ifscCode: string
   createdAt: Date
   updatedAt: Date
+}
+
+export type OtpVerificationDocument = {
+  _id?: ObjectId
+  identifier: string
+  channel: 'email' | 'phone'
+  codeHash: string
+  expiresAt: Date
+  attempts: number
+  verifiedAt?: Date
+  createdAt: Date
+}
+
+export type SavedAddress = {
+  addressId: string
+  addressType: 'Home' | 'Office' | 'Company Residence'
+  friendlyName: string
+  addressDetails: string
+  homeOwnerName?: string
+  officeContactPerson?: string
+  companyName?: string
+  residentEmployeeName?: string
 }
 
 export type PaymentDocument = {
@@ -44,5 +68,10 @@ export async function ensureMongoSchema(db: Db) {
     db.collection<BankDetailDocument>('bank_details').createIndex({ userId: 1 }, { unique: true, name: 'bank_details_user_unique' }),
     db.collection<PaymentDocument>('payments').createIndex({ userId: 1, createdAt: -1 }, { name: 'payments_user_created' }),
     db.collection<PaymentDocument>('payments').createIndex({ transactionId: 1 }, { unique: true, name: 'payments_transaction_unique' }),
+    db.collection<OtpVerificationDocument>('otp_verifications').createIndex({ identifier: 1, channel: 1 }, { unique: true, name: 'otp_identifier_channel_unique' }),
+    db.collection<OtpVerificationDocument>('otp_verifications').createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0, name: 'otp_expiry_ttl' }),
+    db.createCollection('users').catch(() => undefined),
+    db.createCollection('otps').catch(() => undefined),
+    db.createCollection('addresses').catch(() => undefined),
   ])
 }
