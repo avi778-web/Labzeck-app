@@ -56,7 +56,7 @@ export async function PUT(request: Request) {
       throw new Error('invalid code')
     }
     await mongo.otpVerifications.updateOne({ identifier: tokenEmail, channel: 'email' }, { $set: { verifiedAt: new Date() }, $unset: { codeHash: '' } })
-    await mongo.users.updateOne({ email: tokenEmail }, { $set: { verifiedStatus: true, updatedAt: new Date() } })
+    await mongo.users.updateOne({ email: tokenEmail }, { $set: { verifiedStatus: true, updatedAt: new Date() }, $setOnInsert: { email: tokenEmail, name: tokenEmail.split('@')[0], authProvider: 'credentials', createdAt: new Date() } }, { upsert: true })
     return NextResponse.json({ ok: true, verified: true })
   } catch { return NextResponse.json({ ok: false, error: 'That code is invalid or expired.' }, { status: 400 }) }
 }

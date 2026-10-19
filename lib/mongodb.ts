@@ -35,5 +35,7 @@ export async function getMongo() {
     devices: db.collection('user_devices'),
     notifications: db.collection('notifications'),
     otpVerifications: db.collection('otp_verifications'),
+    otps: db.collection('otps'),
+    addresses: db.collection('addresses'),
   }
 }

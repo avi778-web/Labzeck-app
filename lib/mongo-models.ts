@@ -70,5 +70,8 @@ export async function ensureMongoSchema(db: Db) {
     db.collection<PaymentDocument>('payments').createIndex({ transactionId: 1 }, { unique: true, name: 'payments_transaction_unique' }),
     db.collection<OtpVerificationDocument>('otp_verifications').createIndex({ identifier: 1, channel: 1 }, { unique: true, name: 'otp_identifier_channel_unique' }),
     db.collection<OtpVerificationDocument>('otp_verifications').createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0, name: 'otp_expiry_ttl' }),
+    db.createCollection('users').catch(() => undefined),
+    db.createCollection('otps').catch(() => undefined),
+    db.createCollection('addresses').catch(() => undefined),
   ])
 }
