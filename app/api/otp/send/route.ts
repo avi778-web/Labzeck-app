@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import twilio from 'twilio'
 import { randomInt, createHash } from 'node:crypto'
-import { Resend } from 'resend'
 import { z } from 'zod'
 import { getMongo } from '@/lib/mongodb'
 
@@ -20,14 +19,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, delivery: 'sms', expiresAt: expiresAt.getTime() })
     }
     if (body.email && (process.env.RESEND_API_KEY || process.env.RESEND_EMAIL_RESEND_API_KEY)) {
-      const resend = new Resend(process.env.RESEND_API_KEY || process.env.RESEND_EMAIL_RESEND_API_KEY)
-      await resend.emails.send({ from: 'Labzeck <labzeck@zohomail.in>', to: [body.email], subject: 'Your Labzeck phone verification code', html: `<p>Your phone verification code is <strong>${code}</strong>. It expires in 5 minutes.</p>` })
-      return NextResponse.json({ ok: true, delivery: 'email-fallback', expiresAt: expiresAt.getTime() })
+      const resendKey = process.env.RESEND_API_KEY || process.env.RESEND_EMAIL_RESEND_API_KEY
+      const response = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json', 'Idempotency-Key': `phone-otp/${body.phone}/${Math.floor(Date.now() / 60000)}` }, body: JSON.stringify({ from: `Labzeck <${process.env.RESEND_FROM_EMAIL || 'labzeck-app@zohomail.in'}>`, to: [body.email], subject: 'Your Labzeck phone verification code', html: `<p>Your phone verification code is <strong>${code}</strong>. It expires in 5 minutes.</p>` }) })
+      if (response.ok) return NextResponse.json({ ok: true, delivery: 'email-fallback', expiresAt: expiresAt.getTime() })
     }
-    console.info('[v0] Phone OTP demo fallback', { phone: body.phone, code })
-    return NextResponse.json({ ok: true, delivery: 'demo', demoCode: code, expiresAt: expiresAt.getTime() })
+    return NextResponse.json({ ok: false, error: 'Phone delivery is not configured.' }, { status: 503 })
   } catch (error) {
     console.error('❌ Phone OTP Error:', error)
-    return NextResponse.json({ ok: true, delivery: 'demo', message: 'Verification fallback enabled' })
+    return NextResponse.json({ ok: false, error: 'Unable to send phone verification code.' }, { status: 500 })
   }
 }
