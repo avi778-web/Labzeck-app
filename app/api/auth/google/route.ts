@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
     if (!response.ok) return NextResponse.json({ success: false, error: 'Google sign-in could not be verified.' }, { status: 401 })
     const googleUser = await response.json() as { sub?: string; email?: string; name?: string; picture?: string; aud?: string }
     if (!googleUser.sub || !googleUser.email) return NextResponse.json({ success: false, error: 'Google profile is incomplete.' }, { status: 401 })
-    const expectedClientId = (process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '').trim()
+    const expectedClientId = (process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '').trim().replace(/^['"]|['"]$/g, '')
     if (!/^[0-9]+-[a-z0-9-]+\.apps\.googleusercontent\.com$/i.test(expectedClientId)) return NextResponse.json({ success: false, error: 'Google OAuth Client ID is invalid or not configured.' }, { status: 500 })
     if (googleUser.aud !== expectedClientId) return NextResponse.json({ success: false, error: 'Google client ID does not match the configured OAuth client.' }, { status: 401 })
     const { users } = await getMongo()
