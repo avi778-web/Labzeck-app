@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createHmac, randomInt } from 'node:crypto'
+import { createHash, createHmac, randomInt, timingSafeEqual } from 'node:crypto'
 import { z } from 'zod'
-import { createHash, timingSafeEqual } from 'node:crypto'
 import { getMongo } from '@/lib/mongodb'
 
 const schema = z.object({ email: z.string().email().transform(value => value.trim().toLowerCase()) })
@@ -16,29 +15,20 @@ export async function POST(request: Request) {
     const expires = Date.now() + 5 * 60 * 1000
     const payload = `${email}.${code}.${expires}`
     const token = `${Buffer.from(payload).toString('base64url')}.${sign(payload)}`
-    try {
-      const mongo = await getMongo()
-      await mongo.otpVerifications.updateOne({ identifier: email, channel: 'email' }, { $set: { identifier: email, channel: 'email', codeHash: createHash('sha256').update(code).digest('hex'), expiresAt: new Date(expires), attempts: 0, createdAt: new Date() } }, { upsert: true })
-    } catch (error) {
-      console.error('❌ MongoDB OTP save error:', error instanceof Error ? error.message : error)
-    }
+    const mongo = await getMongo()
+    await mongo.otpVerifications.updateOne({ identifier: email, channel: 'email' }, { $set: { identifier: email, channel: 'email', codeHash: createHash('sha256').update(code).digest('hex'), expiresAt: new Date(expires), attempts: 0, createdAt: new Date() } }, { upsert: true })
     const resendKey = process.env.RESEND_API_KEY || process.env.RESEND_EMAIL_RESEND_API_KEY
-    let delivery: 'email' | 'demo' = 'demo'
+    if (!resendKey) return NextResponse.json({ ok: false, error: 'Email delivery is not configured.' }, { status: 503 })
     let deliveryError = ''
-    if (resendKey) {
-      try {
-        const response = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json', 'Idempotency-Key': `email-otp/${email}/${Math.floor(Date.now() / 60000)}` }, body: JSON.stringify({ from: 'Labzeck <labzeck@zohomail.in>', to: [email], subject: 'Your Labzeck verification code', html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto"><h1 style="color:#2563eb">Labzeck</h1><p>Your secure verification code is:</p><div style="font-size:32px;font-weight:800;letter-spacing:8px">${code}</div><p>This code expires in 5 minutes.</p></div>` }) })
-        if (response.ok) delivery = 'email'
-        else { const body = await response.text().catch(() => ''); deliveryError = `Resend ${response.status}: ${body}` }
-      } catch (error) { deliveryError = error instanceof Error ? error.message : 'Resend request failed' }
-    } else {
-      deliveryError = 'RESEND_API_KEY is not configured'
-    }
-    if (delivery === 'demo') console.info('[v0] Email OTP demo fallback', { email, code, reason: deliveryError })
-    return NextResponse.json({ ok: true, token, expiresAt: expires, delivery, demoCode: delivery === 'demo' ? code : undefined })
+    try {
+      const response = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json', 'Idempotency-Key': `email-otp/${email}/${Math.floor(Date.now() / 60000)}` }, body: JSON.stringify({ from: `Labzeck <${process.env.RESEND_FROM_EMAIL || 'labzeck-app@zohomail.in'}>`, to: [email], subject: 'Your Labzeck verification code', html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto"><h1 style="color:#2563eb">Labzeck</h1><p>Your secure verification code is:</p><div style="font-size:32px;font-weight:800;letter-spacing:8px">${code}</div><p>This code expires in 5 minutes.</p></div>` }) })
+      if (!response.ok) { const body = await response.text().catch(() => ''); deliveryError = `Resend ${response.status}: ${body}` }
+    } catch (error) { deliveryError = error instanceof Error ? error.message : 'Resend request failed' }
+    if (deliveryError) return NextResponse.json({ ok: false, error: 'Unable to deliver the verification email.' }, { status: 502 })
+    return NextResponse.json({ ok: true, token, expiresAt: expires, delivery: 'email' })
   } catch (error) {
-    console.error('[v0] Email OTP fallback error:', error)
-    return NextResponse.json({ ok: true, success: true, message: 'OTP sent successfully', delivery: 'demo', demoCode: '123456', expiresAt: Date.now() + 5 * 60 * 1000 }, { status: 200 })
+    console.error('[v0] Email OTP request failed:', error)
+    return NextResponse.json({ ok: false, error: 'Unable to send verification code.' }, { status: 500 })
   }
 }
 

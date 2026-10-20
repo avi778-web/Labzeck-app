@@ -23,7 +23,9 @@ export async function POST(request: Request) {
     const user = await users.findOne({ email }) as StoredUser | null
     if (!user) return NextResponse.json({ success: false, message: 'Account not found. Please Sign Up first.' }, { status: 404 })
     if (!user.passwordHash || !(await verifyPassword(body.password, user.passwordHash))) return NextResponse.json({ success: false, message: 'Invalid email or password.' }, { status: 401 })
-    return NextResponse.json({ success: true, user: { id: user._id.toString(), name: user.name, email: user.email, phone: user.phone, verifiedStatus: user.verifiedStatus } })
+    const response = NextResponse.json({ success: true, user: { id: user._id.toString(), name: user.name, email: user.email, phone: user.phone, verifiedStatus: user.verifiedStatus } })
+    response.cookies.set('labzeck_user_id', user._id.toString(), { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 60 * 60 * 24 * 30, path: '/' })
+    return response
   } catch (error) {
     console.error('[Labzeck] Mongo sign-in failed:', error)
     return NextResponse.json({ success: false, message: 'Unable to sign in.' }, { status: 500 })
