@@ -22,8 +22,11 @@ export async function POST(request: Request) {
       const resendKey = process.env.RESEND_API_KEY || process.env.RESEND_EMAIL_RESEND_API_KEY
       const response = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json', 'Idempotency-Key': `phone-otp/${body.phone}/${Math.floor(Date.now() / 60000)}` }, body: JSON.stringify({ from: `Labzeck <${process.env.RESEND_FROM_EMAIL || 'labzeck-app@zohomail.in'}>`, to: [body.email], subject: 'Your Labzeck phone verification code', html: `<p>Your phone verification code is <strong>${code}</strong>. It expires in 5 minutes.</p>` }) })
       if (response.ok) return NextResponse.json({ ok: true, delivery: 'email-fallback', expiresAt: expiresAt.getTime() })
+      const resendError = await response.text().catch(() => '')
+      console.error('❌ Resend phone OTP fallback error:', response.status, resendError)
+      return NextResponse.json({ ok: false, error: 'Email OTP delivery failed. Check the recipient email and Resend sender configuration.' }, { status: 502 })
     }
-    return NextResponse.json({ ok: false, error: 'Phone delivery is not configured.' }, { status: 503 })
+    return NextResponse.json({ ok: false, error: 'Enter your email first so we can deliver this verification code securely.' }, { status: 422 })
   } catch (error) {
     console.error('❌ Phone OTP Error:', error)
     return NextResponse.json({ ok: false, error: 'Unable to send phone verification code.' }, { status: 500 })
