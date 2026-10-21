@@ -1,33 +1,39 @@
-import { NextResponse } from 'next/server'
-import { timingSafeEqual, scrypt as nodeScrypt } from 'node:crypto'
-import { promisify } from 'node:util'
-import { getMongo } from '@/lib/mongodb'
+import { MongoClient } from 'mongodb'
 
-type StoredUser = { _id: { toString(): string }; name: string; email: string; phone?: string; passwordHash?: string; verifiedStatus: boolean }
-const scrypt = promisify(nodeScrypt)
-
-async function verifyPassword(password: string, stored: string) {
-  const [salt, encoded] = stored.split(':')
-  if (!salt || !encoded) return false
-  const actual = (await scrypt(password, salt, 64)) as Buffer
-  const expected = Buffer.from(encoded, 'hex')
-  return actual.length === expected.length && timingSafeEqual(actual, expected)
+if (!process.env.MONGO_URI) {
+  throw new Error('Please add your Mongo URI to .env.local')
 }
 
-export async function POST(request: Request) {
-  try {
-    const body = await request.json() as { email?: string; password?: string }
-    const email = body.email?.trim().toLowerCase()
-    if (!email || !body.password) return NextResponse.json({ success: false, message: 'Email and password are required.' }, { status: 400 })
-    const { users } = await getMongo()
-    const user = await users.findOne({ email }) as StoredUser | null
-    if (!user) return NextResponse.json({ success: false, message: 'Account not found. Please Sign Up first.' }, { status: 404 })
-    if (!user.passwordHash || !(await verifyPassword(body.password, user.passwordHash))) return NextResponse.json({ success: false, message: 'Invalid email or password.' }, { status: 401 })
-    const response = NextResponse.json({ success: true, user: { id: user._id.toString(), name: user.name, email: user.email, phone: user.phone, verifiedStatus: user.verifiedStatus } })
-    response.cookies.set('labzeck_user_id', user._id.toString(), { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 60 * 60 * 24 * 30, path: '/' })
-    return response
-  } catch (error) {
-    console.error('[Labzeck] Mongo sign-in failed:', error)
-    return NextResponse.json({ success: false, message: 'Unable to sign in.' }, { status: 500 })
-  }
+const uri = process.env.MONGO_URI
+const options = {
+  serverSelectionTimeoutMS: 5000, // 5 सेकंड में टाइमआउट हैंडल करने के लिए
+  socketTimeoutMS: 45000,
+}
+
+let client: MongoClient
+let clientPromise: Promise<MongoClient>
+
+declare global {
+  var _mongoClientPromise: Promise<MongoClient> | undefined
+}
+
+if (process.env.NODE_ENV === 'development') {
+  if (!global._mongoClientPromise) {
+    client = new MongoClient(uri, options)
+    global._mongoClientPromise = client.connect()
+  }
+  clientPromise = global._mongoClientPromise
+} else {
+  client = new MongoClient(uri, options)
+  clientPromise = client.connect()
+}
+
+export async function getMongo() {
+  const dbClient = await clientPromise
+  const db = dbClient.db('labzeck') // अपना डेटाबेस नाम यहाँ चेक कर लो
+  return {
+    client: dbClient,
+    db,
+    users: db.collection('users'),
+  }
 }
