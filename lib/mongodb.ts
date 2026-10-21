@@ -1,18 +1,17 @@
-import { Db, MongoClient } from 'mongodb'
-import { ensureMongoSchema } from '@/lib/mongo-models';
+import { MongoClient } from 'mongodb'
+import { ensureMongoSchema } from '@/lib/mongo-models'
 
-const globalForMongo = globalThis as typeof globalThis & { 
-  labzeckMongo?: MongoClient; 
-  labzeckMongoPromise?: Promise<MongoClient> 
+const globalForMongo = globalThis as typeof globalThis & {
+  labzeckMongo?: MongoClient
+  labzeckMongoPromise?: Promise<MongoClient>
 }
 
 export async function getMongo() {
   const uri = process.env.MONGODB_URI || process.env.MONGODB_CONNECTION_STRING_10 || process.env.MONGODB_CONNECTION_STRING
   if (!uri) {
-    throw new Error('MongoDB is not configured. Please set MONGODB_URI in your environment variables.')
+    throw new Error('MongoDB is not configured. Please set MONGODB_URI in environment variables.')
   }
 
-  // अगर पहले से कनेक्टेड क्लाइंट है तो सीधे रिटर्न करें
   if (globalForMongo.labzeckMongo) {
     const db = globalForMongo.labzeckMongo.db(process.env.MONGODB_DATABASE || 'labzeck')
     return getCollections(db)
@@ -20,7 +19,7 @@ export async function getMongo() {
 
   if (!globalForMongo.labzeckMongoPromise) {
     const client = new MongoClient(uri, {
-      serverSelectionTimeoutMS: 5000, // 5 सेकंड में टाइमआउट हैंडल करने के लिए
+      serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
     })
 
@@ -31,7 +30,7 @@ export async function getMongo() {
         return connectedClient
       })
       .catch((error) => {
-        globalForMongo.labzeckMongoPromise = undefined // एरर आने पर प्रॉमिस रीसेट करें
+        globalForMongo.labzeckMongoPromise = undefined
         globalForMongo.labzeckMongo = undefined
         console.error('❌ MongoDB Connection Error:', error instanceof Error ? error.message : error)
         throw error
@@ -40,14 +39,12 @@ export async function getMongo() {
 
   const connectedClient = await globalForMongo.labzeckMongoPromise
   const db = connectedClient.db(process.env.MONGODB_DATABASE || 'labzeck')
-  
-  // स्कीमा को बैकग्राउंड में रन करें ताकि API रिस्पांस रुक न (hang न हो) जाए
-  ensureMongoSchema(db).catch(err => console.error('Schema ensure error:', err))
+  ensureMongoSchema(db).catch((error) => console.error('Schema ensure error:', error))
 
   return getCollections(db)
 }
 
-function getCollections(db: Db) {
+function getCollections(db: ReturnType<MongoClient['db']>) {
   return {
     db,
     users: db.collection('users'),
