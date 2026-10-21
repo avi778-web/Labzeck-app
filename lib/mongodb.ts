@@ -1,68 +1,33 @@
-import { MongoClient } from 'MongoClient'; // या 'mongodb'
-import { ensureMongoSchema } from '@/lib/mongo-models';
+import { NextResponse } from 'next/server'
+import { timingSafeEqual, scrypt as nodeScrypt } from 'node:crypto'
+import { promisify } from 'node:util'
+import { getMongo } from '@/lib/mongodb'
 
-const globalForMongo = globalThis as typeof globalThis & { 
-  labzeckMongo?: MongoClient; 
-  labzeckMongoPromise?: Promise<MongoClient> 
+type StoredUser = { _id: { toString(): string }; name: string; email: string; phone?: string; passwordHash?: string; verifiedStatus: boolean }
+const scrypt = promisify(nodeScrypt)
+
+async function verifyPassword(password: string, stored: string) {
+  const [salt, encoded] = stored.split(':')
+  if (!salt || !encoded) return false
+  const actual = (await scrypt(password, salt, 64)) as Buffer
+  const expected = Buffer.from(encoded, 'hex')
+  return actual.length === expected.length && timingSafeEqual(actual, expected)
 }
 
-export async function getMongo() {
-  const uri = process.env.MONGODB_URI || process.env.MONGODB_CONNECTION_STRING_10 || process.env.MONGODB_CONNECTION_STRING
-  if (!uri) {
-    throw new Error('MongoDB is not configured. Please set MONGODB_URI in your environment variables.')
-  }
-
-  // अगर पहले से कनेक्टेड क्लाइंट है तो सीधे रिटर्न करें
-  if (globalForMongo.labzeckMongo) {
-    const db = globalForMongo.labzeckMongo.db(process.env.MONGODB_DATABASE || 'labzeck')
-    return getCollections(db)
-  }
-
-  if (!globalForMongo.labzeckMongoPromise) {
-    const client = new MongoClient(uri, {
-      serverSelectionTimeoutMS: 5000, // 5 सेकंड में टाइमआउट हैंडल करने के लिए
-      socketTimeoutMS: 45000,
-    })
-
-    globalForMongo.labzeckMongoPromise = client.connect()
-      .then((connectedClient) => {
-        globalForMongo.labzeckMongo = connectedClient
-        console.log('✅ MongoDB Connected Successfully')
-        return connectedClient
-      })
-      .catch((error) => {
-        globalForMongo.labzeckMongoPromise = undefined // एरर आने पर प्रॉमिस रीसेट करें
-        globalForMongo.labzeckMongo = undefined
-        console.error('❌ MongoDB Connection Error:', error instanceof Error ? error.message : error)
-        throw error
-      })
-  }
-
-  const connectedClient = await globalForMongo.labzeckMongoPromise
-  const db = connectedClient.db(process.env.MONGODB_DATABASE || 'labzeck')
-  
-  // स्कीमा को बैकग्राउंड में रन करें ताकि API रिस्पांस रुक न (hang न हो) जाए
-  ensureMongoSchema(db).catch(err => console.error('Schema ensure error:', err))
-
-  return getCollections(db)
-}
-
-function getCollections(db: any) {
-  return {
-    db,
-    users: db.collection('users'),
-    hirers: db.collection('hirers'),
-    labourers: db.collection('labourers'),
-    locations: db.collection('user_locations'),
-    payoutMethods: db.collection('payout_methods'),
-    subscriptions: db.collection('subscriptions'),
-    jobs: db.collection('job_requests'),
-    aiUsage: db.collection('ai_usage'),
-    avatars: db.collection('profile_avatars'),
-    devices: db.collection('user_devices'),
-    notifications: db.collection('notifications'),
-    otpVerifications: db.collection('otp_verifications'),
-    otps: db.collection('otps'),
-    addresses: db.collection('addresses'),
-  }
+export async function POST(request: Request) {
+  try {
+    const body = await request.json() as { email?: string; password?: string }
+    const email = body.email?.trim().toLowerCase()
+    if (!email || !body.password) return NextResponse.json({ success: false, message: 'Email and password are required.' }, { status: 400 })
+    const { users } = await getMongo()
+    const user = await users.findOne({ email }) as StoredUser | null
+    if (!user) return NextResponse.json({ success: false, message: 'Account not found. Please Sign Up first.' }, { status: 404 })
+    if (!user.passwordHash || !(await verifyPassword(body.password, user.passwordHash))) return NextResponse.json({ success: false, message: 'Invalid email or password.' }, { status: 401 })
+    const response = NextResponse.json({ success: true, user: { id: user._id.toString(), name: user.name, email: user.email, phone: user.phone, verifiedStatus: user.verifiedStatus } })
+    response.cookies.set('labzeck_user_id', user._id.toString(), { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 60 * 60 * 24 * 30, path: '/' })
+    return response
+  } catch (error) {
+    console.error('[Labzeck] Mongo sign-in failed:', error)
+    return NextResponse.json({ success: false, message: 'Unable to sign in.' }, { status: 500 })
+  }
 }
