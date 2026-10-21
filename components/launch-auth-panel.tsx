@@ -39,7 +39,6 @@ export function LaunchAuthPanel({ onSuccess, onRole }: { language?: string; onSu
   const emailFieldRef = useRef<HTMLInputElement>(null)
   const emailOtpPanelRef = useRef<HTMLDivElement>(null)
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim().replace(/^['"]|['"]$/g, '')
-  const googleClientIdLooksValid = Boolean(googleClientId && /^[0-9]+-[a-z0-9-]+\.apps\.googleusercontent\.com$/i.test(googleClientId))
 
   async function handleGoogleCredential(credential: string) {
     setError(''); setGoogleLoading(true)
@@ -54,8 +53,7 @@ export function LaunchAuthPanel({ onSuccess, onRole }: { language?: string; onSu
   function startGoogleSignIn() {
     setError('')
     if (!googleClientId) { setError('Google sign-in is not configured yet. Add NEXT_PUBLIC_GOOGLE_CLIENT_ID.'); return }
-    if (!googleClientIdLooksValid) { setError('Google Client ID is invalid. It must end with .apps.googleusercontent.com.'); return }
-    const google = window.google
+      const google = window.google
     if (!google) { setError('Google sign-in is still loading. Please try again.'); return }
     google.accounts.id.initialize({ client_id: googleClientId, callback: response => void handleGoogleCredential(response.credential) })
     google.accounts.id.prompt(notification => {

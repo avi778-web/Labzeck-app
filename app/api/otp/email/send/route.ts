@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { getMongo } from '@/lib/mongodb'
 
 const schema = z.object({ email: z.string().email().transform(value => value.trim().toLowerCase()) })
-const secret = () => process.env.BETTER_AUTH_SECRET || process.env.RESEND_API_KEY || 'labzeck-otp-secret'
+const secret = () => process.env.BETTER_AUTH_SECRET || (() => { throw new Error('BETTER_AUTH_SECRET is not configured') })()
 
 function sign(payload: string) { return createHmac('sha256', secret()).update(payload).digest('base64url') }
 

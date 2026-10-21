@@ -1,4 +1,4 @@
-import { MongoClient } from 'MongoClient'; // या 'mongodb'
+import { Db, MongoClient } from 'mongodb'
 import { ensureMongoSchema } from '@/lib/mongo-models';
 
 const globalForMongo = globalThis as typeof globalThis & { 
@@ -47,7 +47,7 @@ export async function getMongo() {
   return getCollections(db)
 }
 
-function getCollections(db: any) {
+function getCollections(db: Db) {
   return {
     db,
     users: db.collection('users'),
