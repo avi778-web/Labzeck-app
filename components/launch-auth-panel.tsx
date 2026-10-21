@@ -56,12 +56,7 @@ export function LaunchAuthPanel({ onSuccess, onRole }: { language?: string; onSu
       const google = window.google
     if (!google) { setError('Google sign-in is still loading. Please try again.'); return }
     google.accounts.id.initialize({ client_id: googleClientId, callback: response => void handleGoogleCredential(response.credential) })
-    google.accounts.id.prompt(notification => {
-      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-        const reason = notification.getNotDisplayedReason() || notification.getSkippedReason()
-        setError(reason === 'unregistered_origin' ? 'This domain is not authorized in Google Cloud Console.' : 'Google account picker could not open. Check the OAuth Client ID and authorized origins.')
-      }
-    })
+    google.accounts.id.prompt()
   }
 
   useEffect(() => { if (!otpSent || countdown <= 0) return; const timer = window.setInterval(() => setCountdown(value => value - 1), 1000); return () => window.clearInterval(timer) }, [otpSent, countdown])
