@@ -4,7 +4,6 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import {  ArrowRight, Bell, Check, ChefHat, Globe2, Hammer, Home, LockKeyhole, Mail, MapPin, MessageCircle, MoreHorizontal, Plus, Search, ShieldCheck, Sparkles, Star, UserRound, Wallet, Wrench, Zap } from 'lucide-react'
 import { LaunchAuthPanel } from '@/components/launch-auth-panel'
-import { LabzeckSplash } from '@/components/labzeck-splash'
 import { PaymentModal } from '@/components/payment-modal'
 import { authClient, useSession } from '@/lib/auth-client'
 const LocationPicker = dynamic(() => import('@/components/location-picker'), { ssr: false })
