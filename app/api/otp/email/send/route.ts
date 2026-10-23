@@ -16,8 +16,8 @@ export async function POST(request: Request) {
     const payload = `${email}.${code}.${expires}`
     const token = `${Buffer.from(payload).toString('base64url')}.${sign(payload)}`
     const resendKey = process.env.RESEND_API_KEY || process.env.RESEND_EMAIL_RESEND_API_KEY
-    const configuredDomain = process.env.RESEND_EMAIL_DOMAIN?.trim().replace(/^https?:\/\//, '').replace(/\/$/, '')
-    const sender = process.env.RESEND_FROM_EMAIL?.trim() || (configuredDomain ? `Labzeck <no-reply@${configuredDomain}>` : '')
+    const configuredDomain = (process.env.RESEND_EMAIL_DOMAIN?.trim() || 'labzeck.dpds.org').replace(/^https?:\/\//, '').replace(/\/$/, '')
+    const sender = process.env.RESEND_FROM_EMAIL?.trim() || `Labzeck <no-reply@${configuredDomain}>`
     if (!resendKey || !sender) return NextResponse.json({ ok: false, error: 'Email delivery is not configured. Add a verified Resend sender domain.' }, { status: 503 })
     let deliveryError = ''
     try {

@@ -19,7 +19,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, delivery: 'sms', expiresAt: expiresAt.getTime() })
     }
     const resendKey = process.env.RESEND_API_KEY || process.env.RESEND_EMAIL_RESEND_API_KEY
-    const sender = process.env.RESEND_FROM_EMAIL || 'Labzeck <labzeck-app@zohomail.in>'
+    const sender = process.env.RESEND_FROM_EMAIL || 'Labzeck <no-reply@labzeck.dpds.org>'
     if (!body.email) return NextResponse.json({ ok: false, error: 'Enter your email address to receive the verification code.' }, { status: 422 })
     if (!resendKey) return NextResponse.json({ ok: false, error: 'Email delivery is not configured.' }, { status: 503 })
     const response = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json', 'Idempotency-Key': `phone-otp/${body.phone}/${Math.floor(Date.now() / 60000)}` }, body: JSON.stringify({ from: sender, to: [body.email], subject: 'Your Labzeck phone verification code', html: `<p>Your Labzeck phone verification code is <strong>${code}</strong>. It expires in 5 minutes.</p>` }) })
