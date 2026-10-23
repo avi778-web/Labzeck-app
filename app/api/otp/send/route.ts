@@ -4,7 +4,7 @@ import { randomInt, createHash } from 'node:crypto'
 import { z } from 'zod'
 import { getMongo } from '@/lib/mongodb'
 
-const schema = z.object({ phone: z.string().regex(/^\+?[1-9]\d{9,14}$/), email: z.string().email().optional() })
+const schema = z.object({ phone: z.string().regex(/^\+?[1-9]\d{9,14}$/), email: z.string().email('Enter a valid email address for OTP delivery.') })
 
 export async function POST(request: Request) {
   try {
@@ -29,6 +29,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: 'Enter your email first so we can deliver this verification code securely.' }, { status: 422 })
   } catch (error) {
     console.error('❌ Phone OTP Error:', error)
+    if (error instanceof z.ZodError) return NextResponse.json({ ok: false, error: error.issues[0]?.message || 'Enter a valid email and phone number.' }, { status: 422 })
     return NextResponse.json({ ok: false, error: 'Unable to send phone verification code.' }, { status: 500 })
   }
 }
