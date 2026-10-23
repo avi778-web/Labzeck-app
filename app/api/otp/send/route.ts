@@ -18,7 +18,7 @@ export async function POST(request: Request) {
       await client.verify.v2.services(process.env.TWILIO_VERIFY_SERVICE_SID).verifications.create({ to: body.phone, channel: 'sms' })
       return NextResponse.json({ ok: true, delivery: 'sms', expiresAt: expiresAt.getTime() })
     }
-    const resendKey = process.env.RESEND_API_KEY || process.env.RESEND_EMAIL_RESEND_API_KEY
+    const resendKey = process.env.RESEND_EMAIL_RESEND_API_KEY || (process.env.RESEND_API_KEY && !process.env.RESEND_API_KEY.includes('your_resend_api_key_here') ? process.env.RESEND_API_KEY : undefined)
     const sender = process.env.RESEND_FROM_EMAIL || 'Labzeck <no-reply@labzeck.dpds.org>'
     if (!body.email) return NextResponse.json({ ok: false, error: 'Enter your email address to receive the verification code.' }, { status: 422 })
     if (!resendKey) return NextResponse.json({ ok: false, error: 'Email delivery is not configured.' }, { status: 503 })

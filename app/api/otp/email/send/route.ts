@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     const expires = Date.now() + 5 * 60 * 1000
     const payload = `${email}.${code}.${expires}`
     const token = `${Buffer.from(payload).toString('base64url')}.${sign(payload)}`
-    const resendKey = process.env.RESEND_API_KEY || process.env.RESEND_EMAIL_RESEND_API_KEY
+    const resendKey = process.env.RESEND_EMAIL_RESEND_API_KEY || (process.env.RESEND_API_KEY && !process.env.RESEND_API_KEY.includes('your_resend_api_key_here') ? process.env.RESEND_API_KEY : undefined)
     const configuredDomain = (process.env.RESEND_EMAIL_DOMAIN?.trim() || 'labzeck.dpds.org').replace(/^https?:\/\//, '').replace(/\/$/, '')
     const sender = process.env.RESEND_FROM_EMAIL?.trim() || `Labzeck <no-reply@${configuredDomain}>`
     if (!resendKey || !sender) return NextResponse.json({ ok: false, error: 'Email delivery is not configured. Add a verified Resend sender domain.' }, { status: 503 })
