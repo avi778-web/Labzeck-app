@@ -15,8 +15,6 @@ export async function POST(request: Request) {
     const expires = Date.now() + 5 * 60 * 1000
     const payload = `${email}.${code}.${expires}`
     const token = `${Buffer.from(payload).toString('base64url')}.${sign(payload)}`
-    const mongo = await getMongo()
-    await mongo.otpVerifications.updateOne({ identifier: email, channel: 'email' }, { $set: { identifier: email, channel: 'email', codeHash: createHash('sha256').update(code).digest('hex'), expiresAt: new Date(expires), attempts: 0, createdAt: new Date() } }, { upsert: true })
     const resendKey = process.env.RESEND_API_KEY || process.env.RESEND_EMAIL_RESEND_API_KEY
     const configuredDomain = process.env.RESEND_EMAIL_DOMAIN?.trim().replace(/^https?:\/\//, '').replace(/\/$/, '')
     const sender = process.env.RESEND_FROM_EMAIL?.trim() || (configuredDomain ? `Labzeck <no-reply@${configuredDomain}>` : '')
@@ -27,10 +25,13 @@ export async function POST(request: Request) {
       if (!response.ok) { const body = await response.text().catch(() => ''); console.error('[Labzeck] Resend OTP rejected:', response.status, body); deliveryError = response.status === 403 ? 'The Resend sender domain is not verified.' : response.status === 401 ? 'The Resend API key is invalid.' : `Resend rejected the message (${response.status}).` }
     } catch (error) { deliveryError = error instanceof Error ? error.message : 'Resend request failed' }
     if (deliveryError) return NextResponse.json({ ok: false, error: deliveryError }, { status: 502 })
+    const mongo = await getMongo()
+    await mongo.otpVerifications.updateOne({ identifier: email, channel: 'email' }, { $set: { identifier: email, channel: 'email', codeHash: createHash('sha256').update(code).digest('hex'), expiresAt: new Date(expires), attempts: 0, createdAt: new Date() } }, { upsert: true })
     return NextResponse.json({ ok: true, token, expiresAt: expires, delivery: 'email' })
   } catch (error) {
-    console.error('[v0] Email OTP request failed:', error)
-    return NextResponse.json({ ok: false, error: 'Unable to send verification code.' }, { status: 500 })
+    console.error('[Labzeck] Email OTP request failed:', error)
+    if (error instanceof z.ZodError) return NextResponse.json({ ok: false, error: error.issues[0]?.message || 'Enter a valid email address.' }, { status: 422 })
+    return NextResponse.json({ ok: false, error: 'Unable to send verification code. Please try again.' }, { status: 500 })
   }
 }
 
