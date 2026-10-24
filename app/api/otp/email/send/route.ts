@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     let deliveryError = ''
     try {
       const response = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json', 'Idempotency-Key': `email-otp/${email}/${Math.floor(Date.now() / 60000)}` }, body: JSON.stringify({ from: sender, to: [email], subject: 'Your Labzeck verification code', html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto"><h1 style="color:#2563eb">Labzeck</h1><p>Your secure verification code is:</p><div style="font-size:32px;font-weight:800;letter-spacing:8px">${code}</div><p>This code expires in 5 minutes.</p></div>` }) })
-      if (!response.ok) { const body = await response.text().catch(() => ''); console.error('[Labzeck] Resend OTP rejected:', response.status, body); deliveryError = response.status === 403 ? 'The Resend sender domain is not verified.' : response.status === 401 ? 'The Resend API key is invalid.' : `Resend rejected the message (${response.status}).` }
+      if (!response.ok) { const body = await response.text().catch(() => ''); console.error('[Labzeck] Resend OTP rejected:', response.status, body); let resendMessage = ''; try { resendMessage = JSON.parse(body)?.message || JSON.parse(body)?.name || '' } catch {} deliveryError = response.status === 403 ? 'The Resend sender domain is not verified.' : response.status === 401 ? 'The Resend API key is invalid.' : resendMessage ? `Resend: ${resendMessage}` : `Resend rejected the message (${response.status}).` }
     } catch (error) { deliveryError = error instanceof Error ? error.message : 'Resend request failed' }
     if (deliveryError) return NextResponse.json({ ok: false, error: deliveryError }, { status: 502 })
     const mongo = await getMongo()
@@ -53,5 +53,5 @@ export async function PUT(request: Request) {
     await mongo.otpVerifications.updateOne({ identifier: tokenEmail, channel: 'email' }, { $set: { verifiedAt: new Date() }, $unset: { codeHash: '' } })
     await mongo.users.updateOne({ email: tokenEmail }, { $set: { verifiedStatus: true, updatedAt: new Date() }, $setOnInsert: { email: tokenEmail, name: tokenEmail.split('@')[0], authProvider: 'credentials', createdAt: new Date() } }, { upsert: true })
     return NextResponse.json({ ok: true, verified: true })
-  } catch { return NextResponse.json({ ok: false, error: 'That code is invalid or expired.' }, { status: 400 }) }
+  } catch (error) { console.error('[Labzeck] Email OTP verification failed:', error); return NextResponse.json({ ok: false, error: 'That code is invalid or expired.' }, { status: 400 }) }
 }
