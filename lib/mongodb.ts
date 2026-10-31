@@ -1,4 +1,5 @@
 import { MongoClient } from 'mongodb'
+<<<<<<< HEAD
 import { ensureMongoSchema } from '@/lib/mongo-models'
 
 const globalForMongo = globalThis as typeof globalThis & {
@@ -46,20 +47,8 @@ export async function getMongo() {
 
 function getCollections(db: ReturnType<MongoClient['db']>) {
   return {
+    client: dbClient,
     db,
     users: db.collection('users'),
-    hirers: db.collection('hirers'),
-    labourers: db.collection('labourers'),
-    locations: db.collection('user_locations'),
-    payoutMethods: db.collection('payout_methods'),
-    subscriptions: db.collection('subscriptions'),
-    jobs: db.collection('job_requests'),
-    aiUsage: db.collection('ai_usage'),
-    avatars: db.collection('profile_avatars'),
-    devices: db.collection('user_devices'),
-    notifications: db.collection('notifications'),
-    otpVerifications: db.collection('otp_verifications'),
-    otps: db.collection('otps'),
-    addresses: db.collection('addresses'),
   }
 }
