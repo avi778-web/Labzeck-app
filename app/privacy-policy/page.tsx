@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { ShieldCheck } from 'lucide-react'
 
 export default function PrivacyPolicyPage() {
@@ -13,7 +14,7 @@ export default function PrivacyPolicyPage() {
         <section className="policy-card"><h2>3. Location and visibility</h2><p>Location helps us show nearby opportunities. You control whether your profile is online and whether contact details are visible. You can turn these controls off from your profile.</p></section>
         <section className="policy-card"><h2>4. Payments and security</h2><p>Labzeck stores payment references for review. We do not store UPI passwords, PINs, or bank login details. Never share your UPI PIN with anyone.</p></section>
         <section className="policy-card"><h2>5. Your choices</h2><p>You may update your profile, request account help, or ask us to remove your information. Contact support through the Labzeck app for assistance.</p></section>
-        <p className="policy-updated">Last updated: September 2026</p>
+        <p className="policy-updated">Last updated: September 2026</p><div className="policy-links"><Link href="/terms">Terms of Use</Link><Link href="/help">Help Centre</Link></div>
       </div>
     </main>
   )
