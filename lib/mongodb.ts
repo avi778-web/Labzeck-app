@@ -1,36 +1,51 @@
 import { MongoClient } from 'mongodb'
+<<<<<<< HEAD
+import { ensureMongoSchema } from '@/lib/mongo-models'
 
-if (!process.env.MONGO_URI) {
-  throw new Error('Please add your Mongo URI to .env.local')
-}
-
-const uri = process.env.MONGO_URI
-const options = {
-  serverSelectionTimeoutMS: 5000, // 5 सेकंड में टाइमआउट हैंडल करने के लिए
-  socketTimeoutMS: 45000,
-}
-
-let client: MongoClient
-let clientPromise: Promise<MongoClient>
-
-declare global {
-  var _mongoClientPromise: Promise<MongoClient> | undefined
-}
-
-if (process.env.NODE_ENV === 'development') {
-  if (!global._mongoClientPromise) {
-    client = new MongoClient(uri, options)
-    global._mongoClientPromise = client.connect()
-  }
-  clientPromise = global._mongoClientPromise
-} else {
-  client = new MongoClient(uri, options)
-  clientPromise = client.connect()
+const globalForMongo = globalThis as typeof globalThis & {
+  labzeckMongo?: MongoClient
+  labzeckMongoPromise?: Promise<MongoClient>
 }
 
 export async function getMongo() {
-  const dbClient = await clientPromise
-  const db = dbClient.db('labzeck') // अपना डेटाबेस नाम यहाँ चेक कर लो
+  const uri = process.env.MONGODB_URI || process.env.MONGODB_CONNECTION_STRING_10 || process.env.MONGODB_CONNECTION_STRING
+  if (!uri) {
+    throw new Error('MongoDB is not configured. Please set MONGODB_URI in environment variables.')
+  }
+
+  if (globalForMongo.labzeckMongo) {
+    const db = globalForMongo.labzeckMongo.db(process.env.MONGODB_DATABASE || 'labzeck')
+    return getCollections(db)
+  }
+
+  if (!globalForMongo.labzeckMongoPromise) {
+    const client = new MongoClient(uri, {
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    })
+
+    globalForMongo.labzeckMongoPromise = client.connect()
+      .then((connectedClient) => {
+        globalForMongo.labzeckMongo = connectedClient
+        console.log('✅ MongoDB Connected Successfully')
+        return connectedClient
+      })
+      .catch((error) => {
+        globalForMongo.labzeckMongoPromise = undefined
+        globalForMongo.labzeckMongo = undefined
+        console.error('❌ MongoDB Connection Error:', error instanceof Error ? error.message : error)
+        throw error
+      })
+  }
+
+  const connectedClient = await globalForMongo.labzeckMongoPromise
+  const db = connectedClient.db(process.env.MONGODB_DATABASE || 'labzeck')
+  ensureMongoSchema(db).catch((error) => console.error('Schema ensure error:', error))
+
+  return getCollections(db)
+}
+
+function getCollections(db: ReturnType<MongoClient['db']>) {
   return {
     client: dbClient,
     db,

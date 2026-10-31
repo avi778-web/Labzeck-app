@@ -4,7 +4,7 @@ import './globals.css'
 import { LabzeckSplash } from '@/components/labzeck-splash'
 
 export const metadata: Metadata = {
-  title: 'Labzeck — Work made simple',
+  title: 'Labzeck',
   description: 'Find reliable work or trusted help in your neighbourhood with Labzeck.',
   icons: {
     icon: [

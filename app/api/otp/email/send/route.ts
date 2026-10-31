@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { getMongo } from '@/lib/mongodb'
 
 const schema = z.object({ email: z.string().email().transform(value => value.trim().toLowerCase()) })
-const secret = () => process.env.BETTER_AUTH_SECRET || process.env.RESEND_API_KEY || 'labzeck-otp-secret'
+const secret = () => process.env.BETTER_AUTH_SECRET || (() => { throw new Error('BETTER_AUTH_SECRET is not configured') })()
 
 function sign(payload: string) { return createHmac('sha256', secret()).update(payload).digest('base64url') }
 
@@ -15,20 +15,23 @@ export async function POST(request: Request) {
     const expires = Date.now() + 5 * 60 * 1000
     const payload = `${email}.${code}.${expires}`
     const token = `${Buffer.from(payload).toString('base64url')}.${sign(payload)}`
-    const mongo = await getMongo()
-    await mongo.otpVerifications.updateOne({ identifier: email, channel: 'email' }, { $set: { identifier: email, channel: 'email', codeHash: createHash('sha256').update(code).digest('hex'), expiresAt: new Date(expires), attempts: 0, createdAt: new Date() } }, { upsert: true })
-    const resendKey = process.env.RESEND_API_KEY || process.env.RESEND_EMAIL_RESEND_API_KEY
-    if (!resendKey) return NextResponse.json({ ok: false, error: 'Email delivery is not configured.' }, { status: 503 })
+    const resendKey = process.env.RESEND_EMAIL_RESEND_API_KEY || (process.env.RESEND_API_KEY && !process.env.RESEND_API_KEY.includes('your_resend_api_key_here') ? process.env.RESEND_API_KEY : undefined)
+    const configuredDomain = (process.env.RESEND_EMAIL_DOMAIN?.trim() || 'labzeck.dpds.org').replace(/^https?:\/\//, '').replace(/\/$/, '')
+    const sender = process.env.RESEND_FROM_EMAIL?.trim() || `Labzeck <no-reply@${configuredDomain}>`
+    if (!resendKey || !sender) return NextResponse.json({ ok: false, error: 'Email delivery is not configured. Add a verified Resend sender domain.' }, { status: 503 })
     let deliveryError = ''
     try {
-      const response = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json', 'Idempotency-Key': `email-otp/${email}/${Math.floor(Date.now() / 60000)}` }, body: JSON.stringify({ from: `Labzeck <${process.env.RESEND_FROM_EMAIL || 'labzeck-app@zohomail.in'}>`, to: [email], subject: 'Your Labzeck verification code', html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto"><h1 style="color:#2563eb">Labzeck</h1><p>Your secure verification code is:</p><div style="font-size:32px;font-weight:800;letter-spacing:8px">${code}</div><p>This code expires in 5 minutes.</p></div>` }) })
-      if (!response.ok) { const body = await response.text().catch(() => ''); deliveryError = `Resend ${response.status}: ${body}` }
+      const response = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json', 'Idempotency-Key': `email-otp/${email}/${Math.floor(Date.now() / 60000)}` }, body: JSON.stringify({ from: sender, to: [email], subject: 'Your Labzeck verification code', html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto"><h1 style="color:#2563eb">Labzeck</h1><p>Your secure verification code is:</p><div style="font-size:32px;font-weight:800;letter-spacing:8px">${code}</div><p>This code expires in 5 minutes.</p></div>` }) })
+      if (!response.ok) { const body = await response.text().catch(() => ''); console.error('[Labzeck] Resend OTP rejected:', response.status, body); let resendMessage = ''; try { resendMessage = JSON.parse(body)?.message || JSON.parse(body)?.name || '' } catch {} deliveryError = response.status === 403 ? 'The Resend sender domain is not verified.' : response.status === 401 ? 'The Resend API key is invalid.' : resendMessage ? `Resend: ${resendMessage}` : `Resend rejected the message (${response.status}).` }
     } catch (error) { deliveryError = error instanceof Error ? error.message : 'Resend request failed' }
-    if (deliveryError) return NextResponse.json({ ok: false, error: 'Unable to deliver the verification email.' }, { status: 502 })
+    if (deliveryError) return NextResponse.json({ ok: false, error: deliveryError }, { status: 502 })
+    const mongo = await getMongo()
+    await mongo.otpVerifications.updateOne({ identifier: email, channel: 'email' }, { $set: { identifier: email, channel: 'email', codeHash: createHash('sha256').update(code).digest('hex'), expiresAt: new Date(expires), attempts: 0, createdAt: new Date() } }, { upsert: true })
     return NextResponse.json({ ok: true, token, expiresAt: expires, delivery: 'email' })
   } catch (error) {
-    console.error('[v0] Email OTP request failed:', error)
-    return NextResponse.json({ ok: false, error: 'Unable to send verification code.' }, { status: 500 })
+    console.error('[Labzeck] Email OTP request failed:', error)
+    if (error instanceof z.ZodError) return NextResponse.json({ ok: false, error: error.issues[0]?.message || 'Enter a valid email address.' }, { status: 422 })
+    return NextResponse.json({ ok: false, error: 'Unable to send verification code. Please try again.' }, { status: 500 })
   }
 }
 
@@ -50,5 +53,5 @@ export async function PUT(request: Request) {
     await mongo.otpVerifications.updateOne({ identifier: tokenEmail, channel: 'email' }, { $set: { verifiedAt: new Date() }, $unset: { codeHash: '' } })
     await mongo.users.updateOne({ email: tokenEmail }, { $set: { verifiedStatus: true, updatedAt: new Date() }, $setOnInsert: { email: tokenEmail, name: tokenEmail.split('@')[0], authProvider: 'credentials', createdAt: new Date() } }, { upsert: true })
     return NextResponse.json({ ok: true, verified: true })
-  } catch { return NextResponse.json({ ok: false, error: 'That code is invalid or expired.' }, { status: 400 }) }
+  } catch (error) { console.error('[Labzeck] Email OTP verification failed:', error); return NextResponse.json({ ok: false, error: 'That code is invalid or expired.' }, { status: 400 }) }
 }

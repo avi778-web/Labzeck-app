@@ -9,7 +9,8 @@ export async function POST(request: Request) {
     const plan = body.plan === '₹699' ? '699' : body.plan === '₹399' ? '399' : ''
     const payerName = typeof body.payerName === 'string' ? body.payerName.trim() : ''
     const utr = typeof body.utr === 'string' ? body.utr.trim() : ''
-    const userId = typeof body.userId === 'string' && body.userId.trim() ? body.userId.trim() : 'demo-user'
+    const userId = typeof body.userId === 'string' && body.userId.trim() ? body.userId.trim() : ''
+  if (!userId) return NextResponse.json({ ok: false, error: 'Authentication required.' }, { status: 401 })
     if (!plan || !payerName || !utr || utr.length < 6) return NextResponse.json({ ok: false, error: 'Plan, payer name and valid UTR are required.' }, { status: 400 })
     await pool.query('INSERT INTO subscription_requests (user_id, plan, payer_name, utr) VALUES ($1, $2, $3, $4)', [userId, plan, payerName, utr])
     return NextResponse.json({ ok: true, status: 'pending' })

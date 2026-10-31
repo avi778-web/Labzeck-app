@@ -4,7 +4,7 @@ import { randomInt, createHash } from 'node:crypto'
 import { z } from 'zod'
 import { getMongo } from '@/lib/mongodb'
 
-const schema = z.object({ phone: z.string().regex(/^\+?[1-9]\d{9,14}$/), email: z.string().email().optional() })
+const schema = z.object({ phone: z.string().regex(/^\+?[1-9]\d{9,14}$/), email: z.string().email('Enter a valid email address for OTP delivery.') })
 
 export async function POST(request: Request) {
   try {
@@ -18,14 +18,18 @@ export async function POST(request: Request) {
       await client.verify.v2.services(process.env.TWILIO_VERIFY_SERVICE_SID).verifications.create({ to: body.phone, channel: 'sms' })
       return NextResponse.json({ ok: true, delivery: 'sms', expiresAt: expiresAt.getTime() })
     }
-    if (body.email && (process.env.RESEND_API_KEY || process.env.RESEND_EMAIL_RESEND_API_KEY)) {
-      const resendKey = process.env.RESEND_API_KEY || process.env.RESEND_EMAIL_RESEND_API_KEY
-      const response = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json', 'Idempotency-Key': `phone-otp/${body.phone}/${Math.floor(Date.now() / 60000)}` }, body: JSON.stringify({ from: `Labzeck <${process.env.RESEND_FROM_EMAIL || 'labzeck-app@zohomail.in'}>`, to: [body.email], subject: 'Your Labzeck phone verification code', html: `<p>Your phone verification code is <strong>${code}</strong>. It expires in 5 minutes.</p>` }) })
-      if (response.ok) return NextResponse.json({ ok: true, delivery: 'email-fallback', expiresAt: expiresAt.getTime() })
-    }
-    return NextResponse.json({ ok: false, error: 'Phone delivery is not configured.' }, { status: 503 })
+    const resendKey = process.env.RESEND_EMAIL_RESEND_API_KEY || (process.env.RESEND_API_KEY && !process.env.RESEND_API_KEY.includes('your_resend_api_key_here') ? process.env.RESEND_API_KEY : undefined)
+    const sender = process.env.RESEND_FROM_EMAIL || 'Labzeck <no-reply@labzeck.dpds.org>'
+    if (!body.email) return NextResponse.json({ ok: false, error: 'Enter your email address to receive the verification code.' }, { status: 422 })
+    if (!resendKey) return NextResponse.json({ ok: false, error: 'Email delivery is not configured.' }, { status: 503 })
+    const response = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json', 'Idempotency-Key': `phone-otp/${body.phone}/${Math.floor(Date.now() / 60000)}` }, body: JSON.stringify({ from: sender, to: [body.email], subject: 'Your Labzeck phone verification code', html: `<p>Your Labzeck phone verification code is <strong>${code}</strong>. It expires in 5 minutes.</p>` }) })
+    if (response.ok) return NextResponse.json({ ok: true, delivery: 'email', expiresAt: expiresAt.getTime() })
+    const resendError = await response.text().catch(() => '')
+    console.error('[Labzeck] Resend phone OTP error:', response.status, resendError)
+    return NextResponse.json({ ok: false, error: 'Email OTP delivery failed. Check the verified Resend sender domain.' }, { status: 502 })
   } catch (error) {
     console.error('❌ Phone OTP Error:', error)
+    if (error instanceof z.ZodError) return NextResponse.json({ ok: false, error: error.issues[0]?.message || 'Enter a valid email and phone number.' }, { status: 422 })
     return NextResponse.json({ ok: false, error: 'Unable to send phone verification code.' }, { status: 500 })
   }
 }
