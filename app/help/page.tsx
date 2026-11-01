@@ -4,6 +4,7 @@ import { ArrowLeft, HelpCircle, Mail, ShieldCheck } from 'lucide-react'
 const faqs = [
   ['How do I verify my account?', 'Choose phone or email verification, enter the one-time code sent to you, and continue when it is confirmed.'],
   ['How do I update my availability?', 'Open your profile and adjust your work preferences. Keeping your availability current helps people find you.'],
+  ['Why did my email OTP not arrive?', 'Check your inbox spam folder and confirm the email address. If Labzeck reports a sender-domain issue, the team must complete DNS verification in Resend before another code can be delivered.'],
   ['How do I report a problem?', 'Use the in-app support route or contact the Labzeck team with the account email and a short description of the issue.'],
 ]
 

@@ -15,6 +15,7 @@ export function LaunchAuthPanel({ onSuccess, onRole }: { language?: string; onSu
   const router = useRouter()
   const { isLoaded: signInLoaded, signIn, setActive: setSignInActive } = useSignIn()
   const { isLoaded: signUpLoaded, signUp, setActive: setSignUpActive } = useSignUp()
+  const clerkReady = signInLoaded && signUpLoaded && Boolean(signIn) && Boolean(signUp)
   const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-up')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -147,7 +148,7 @@ export function LaunchAuthPanel({ onSuccess, onRole }: { language?: string; onSu
       <label className="auth-field auth-field-three">Password<div className="password-field"><input type={showPassword ? 'text' : 'password'} value={password} onChange={event => setPassword(event.target.value)} placeholder="At least 8 characters" minLength={8} autoComplete={mode === 'sign-in' ? 'current-password' : 'new-password'} required /><button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword(value => !value)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></label>
       {mode === 'sign-up' && <label className="consent-row"><input type="checkbox" checked={terms} onChange={event => setTerms(event.target.checked)} required /><span>I agree to the Privacy Policy and Terms of Service.</span></label>}
       {error && <p className="form-error" role="alert">{error}</p>}
-      <button type="submit" className="primary wide auth-submit" disabled={loading}>{loading ? <><span className="button-spinner" /> {mode === 'sign-in' ? 'Signing you in…' : 'Creating account…'}</> : mode === 'sign-in' ? 'Sign in securely' : 'Create my account'} {!loading && <ArrowRight size={17} />}</button>
+      <button type="submit" className="primary wide auth-submit" disabled={loading || !clerkReady}>{loading ? <><span className="button-spinner" /> {mode === 'sign-in' ? 'Signing you in…' : 'Creating account…'}</> : mode === 'sign-in' ? 'Sign in securely' : 'Create my account'} {!loading && <ArrowRight size={17} />}</button>
     </form>
   </div>
 }
