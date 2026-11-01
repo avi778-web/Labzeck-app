@@ -2,6 +2,7 @@ import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { LabzeckSplash } from '@/components/labzeck-splash'
+import { LabzeckClerkProvider } from '@/components/clerk-provider'
 
 export const metadata: Metadata = {
   title: 'Labzeck',
@@ -46,9 +47,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        <LabzeckSplash />
-        {children}
-        {process.env.NODE_ENV === 'production' && <Analytics />}
+        <LabzeckClerkProvider>
+          <LabzeckSplash />
+          {children}
+          {process.env.NODE_ENV === 'production' && <Analytics />}
+        </LabzeckClerkProvider>
       </body>
     </html>
   )
