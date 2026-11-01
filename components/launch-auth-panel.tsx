@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Script from 'next/script'
+import { useSignIn, useSignUp } from '@clerk/nextjs'
 import { ArrowRight, BriefcaseBusiness, Eye, EyeOff, Mail, Phone, Sparkles, UsersRound } from 'lucide-react'
 
 
@@ -12,6 +13,8 @@ declare global { interface Window { google?: { accounts: { id: GoogleIdentity['a
 
 export function LaunchAuthPanel({ onSuccess, onRole }: { language?: string; onSuccess?: (name?: string) => void; onRole?: (role: Role) => void }) {
   const router = useRouter()
+  const { isLoaded: signInLoaded, signIn, setActive: setSignInActive } = useSignIn()
+  const { isLoaded: signUpLoaded, signUp, setActive: setSignUpActive } = useSignUp()
   const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-up')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -87,13 +90,21 @@ export function LaunchAuthPanel({ onSuccess, onRole }: { language?: string; onSu
     event.preventDefault()
     setError(''); if (mode === 'sign-up' && !emailVerified) { setError('Verify your email with OTP before creating your account.'); return } setLoading(true)
     try {
-      const response = await fetch(mode === 'sign-in' ? '/api/mongo-auth/signin' : '/api/mongo-auth/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email.trim().toLowerCase(), password, name: name.trim(), verifiedStatus: emailVerified, authProvider: 'credentials' }) })
-      const result = await response.json() as { success?: boolean; message?: string; user?: { name?: string } }
-      if (!response.ok || !result.success) { setError(result.message || (mode === 'sign-in' ? 'Email or password is incorrect.' : 'This email may already be registered, or the details are invalid.')); return }
-      setName(result.user?.name || name || 'Labzeck member')
+      if (mode === 'sign-in') {
+        if (!signInLoaded) throw new Error('Authentication is still loading. Please try again.')
+        const attempt = await signIn.create({ identifier: email.trim().toLowerCase(), password })
+        if (attempt.status !== 'complete' || !attempt.createdSessionId) throw new Error('Additional verification is required to finish signing in.')
+        await setSignInActive({ session: attempt.createdSessionId })
+      } else {
+        if (!signUpLoaded) throw new Error('Authentication is still loading. Please try again.')
+        const attempt = await signUp.create({ emailAddress: email.trim().toLowerCase(), password, firstName: name.trim().split(/\\s+/)[0], lastName: name.trim().split(/\\s+/).slice(1).join(' ') || undefined })
+        if (attempt.status !== 'complete' || !attempt.createdSessionId) throw new Error('Your email is verified, but Clerk requires one more verification step.')
+        await setSignUpActive({ session: attempt.createdSessionId })
+      }
       setProfile(true)
-    } catch {
-      setError('Unable to connect. Please check your internet and try again.')
+    } catch (error) {
+      const clerkError = error as { errors?: Array<{ longMessage?: string; message?: string }> }
+      setError(clerkError.errors?.[0]?.longMessage || clerkError.errors?.[0]?.message || (error instanceof Error ? error.message : 'Unable to authenticate securely.'))
     } finally { setLoading(false) }
   }
 
