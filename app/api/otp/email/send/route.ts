@@ -21,11 +21,10 @@ export async function POST(request: Request) {
     if (!resendKey || !sender) return NextResponse.json({ ok: false, error: 'Email delivery is not configured. Add a verified Resend sender domain.' }, { status: 503 })
     try {
       const domainsResponse = await fetch('https://api.resend.com/domains', { headers: { Authorization: `Bearer ${resendKey}` }, cache: 'no-store' })
-      if (domainsResponse.ok) {
-        const domains = await domainsResponse.json() as { data?: Array<{ name?: string; status?: string }> }
-        const domain = domains.data?.find(item => item.name?.toLowerCase() === configuredDomain.toLowerCase())
-        if (!domain || domain.status !== 'verified') return NextResponse.json({ ok: false, error: `Resend domain ${configuredDomain} is not verified yet. Complete its DNS verification before requesting an OTP.` }, { status: 503 })
-      }
+      if (!domainsResponse.ok) return NextResponse.json({ ok: false, error: domainsResponse.status === 401 ? 'The Resend API key is invalid or expired.' : 'Resend domain verification could not be checked.' }, { status: 503 })
+      const domains = await domainsResponse.json() as { data?: Array<{ name?: string; status?: string }> }
+      const domain = domains.data?.find(item => item.name?.toLowerCase() === configuredDomain.toLowerCase())
+      if (!domain || domain.status !== 'verified') return NextResponse.json({ ok: false, error: `Resend domain ${configuredDomain} is not verified yet. Complete its DNS verification before requesting an OTP.` }, { status: 503 })
     } catch (error) { console.error('[Labzeck] Resend domain preflight failed:', error) }
     let deliveryError = ''
     try {
