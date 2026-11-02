@@ -1,4 +1,5 @@
 import { Analytics } from '@vercel/analytics/next'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { LabzeckSplash } from '@/components/labzeck-splash'
@@ -51,6 +52,7 @@ export default function RootLayout({
           <LabzeckSplash />
           {children}
           {process.env.NODE_ENV === 'production' && <Analytics />}
+          {process.env.NODE_ENV === 'production' && <SpeedInsights />}
         </LabzeckClerkProvider>
       </body>
     </html>
