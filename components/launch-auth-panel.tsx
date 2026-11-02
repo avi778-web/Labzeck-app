@@ -15,8 +15,8 @@ export function LaunchAuthPanel({ onSuccess, onRole }: { language?: string; onSu
   const router = useRouter()
   const { isLoaded: signInLoaded, signIn, setActive: setSignInActive } = useSignIn()
   const { isLoaded: signUpLoaded, signUp, setActive: setSignUpActive } = useSignUp()
-  const clerkReady = signInLoaded && signUpLoaded && Boolean(signIn) && Boolean(signUp)
   const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-up')
+  const clerkReady = mode === 'sign-in' ? signInLoaded && Boolean(signIn) : signUpLoaded && Boolean(signUp)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -73,7 +73,7 @@ export function LaunchAuthPanel({ onSuccess, onRole }: { language?: string; onSu
   async function sendEmailOtp() {
     setError(''); setLoading(true)
     scrollToAuthTarget(emailFieldRef.current)
-    try { const response = await fetch('/api/otp/email/send', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ email }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error); setEmailOtpToken(data.token); setEmailDelivery('email'); setEmailOtpSent(true); setEmailCountdown(300); window.requestAnimationFrame(() => emailOtpPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })) } catch (error) { setError(error instanceof Error ? error.message : 'Unable to send verification email.') } finally { setLoading(false) }
+    try { const response = await fetch('/api/otp/email/send', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ email }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error); setEmailOtpToken(data.token); setEmailOtpSent(true); setEmailCountdown(300); window.requestAnimationFrame(() => emailOtpPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })) } catch (error) { setError(error instanceof Error ? error.message : 'Unable to send verification email.') } finally { setLoading(false) }
   }
   async function verifyEmailOtp(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setError(''); setLoading(true)
@@ -111,10 +111,14 @@ export function LaunchAuthPanel({ onSuccess, onRole }: { language?: string; onSu
 
   function chooseRole(nextRole: Role) {
     setRole(nextRole)
-    if (nextRole === 'hirer') finish(nextRole)
+    if (nextRole === 'hirer') void finish(nextRole)
   }
 
-  function finish(nextRole: Role = role as Role) {
+  async function finish(nextRole: Role = role as Role) {
+    try {
+      const response = await fetch('/api/profile/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name.trim() || 'Labzeck member', email: email.trim(), role: nextRole, language: 'English' }) })
+      if (!response.ok) throw new Error('Your account was created, but the profile could not be saved. Please try again.')
+    } catch (error) { setError(error instanceof Error ? error.message : 'Profile could not be saved.'); return }
     onRole?.(nextRole)
     document.cookie = `labzeck_role=${nextRole}; path=/; max-age=31536000; samesite=lax`
     onSuccess?.(name)
