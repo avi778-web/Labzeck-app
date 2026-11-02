@@ -22,9 +22,20 @@ export async function getMongo() {
     })
   }
 
-  const client = await globalForMongo.labzeckMongoPromise
+  let client: MongoClient
+  try {
+    client = await globalForMongo.labzeckMongoPromise
+  } catch (error) {
+    console.error('[Labzeck] MongoDB connection failed:', error)
+    throw new Error('Unable to connect to MongoDB. Check the configured Atlas connection string.')
+  }
   const db = client.db(process.env.MONGODB_DATABASE || 'labzeck')
-  ensureMongoSchema(db).catch((error) => console.error('[Labzeck] Mongo schema setup failed:', error))
+  try {
+    await ensureMongoSchema(db)
+  } catch (error) {
+    console.error('[Labzeck] Mongo schema setup failed:', error)
+    throw new Error('Unable to initialize MongoDB indexes and collections.')
+  }
   return {
     client,
     db,
